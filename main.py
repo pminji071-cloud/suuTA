@@ -63,11 +63,8 @@ st.markdown("""
 # 2. 게임 메인 타이틀
 st.markdown('<div class="game-title">👾 VLAST VTuber Motion Capture Quest v1.0 👾</div>', unsafe_allow_html=True)
 
-# MediaPipe face mesh 안전 호출
-try:
-    import mediapipe.python.solutions.face_mesh as mp_face_mesh
-except AttributeError:
-    mp_face_mesh = mp.solutions.face_mesh
+# MediaPipe Face Mesh 정석 호출
+mp_face_mesh = mp.solutions.face_mesh
 
 # 3. 사이드바 - 캐릭터 장비 및 테마 선택 (게임 컨셉)
 st.sidebar.title("🎮 PLAYER MENU")
