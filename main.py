@@ -3,15 +3,18 @@ import numpy as np
 import mediapipe as mp
 from PIL import Image, ImageDraw
 
+# MediaPipe 모듈을 안전하게 직접 불러오기 (AttributeError 방지)
+try:
+    import mediapipe.python.solutions.face_mesh as mp_face_mesh
+except AttributeError:
+    mp_face_mesh = mp.solutions.face_mesh
+
 # 1. 페이지 설정 및 타이틀
 st.set_page_config(page_title="Virtual Motion Capture TA Tool", page_icon="🎭")
 st.title("🎭 버추얼 모션 캡처 & 그래픽 파이프라인 툴")
 st.caption("TA/TD 진로 탐구: VLAST 버추얼 파이프라인 기반 3D Face Landmarks 추적 및 그래픽스 렌더링")
 
-# 2. MediaPipe Face Mesh 설정
-mp_face_mesh = mp.solutions.face_mesh
-
-# 3. 사이드바 - TA/아티스트용 파이프라인 옵션
+# 2. 사이드바 - TA/아티스트용 파이프라인 옵션
 st.sidebar.header("⚙️ 모션 캡처 파이프라인 옵션")
 show_mesh = st.sidebar.checkbox("3D 모션 캡처 랜드마크 표시", value=True)
 color_option = st.sidebar.selectbox("선 그래픽 색상 모드", ["네온 그린", "버추얼 시안", "핫 핑크"])
@@ -23,7 +26,7 @@ color_dict = {
     "핫 핑크": (255, 20, 147)
 }
 
-# 4. 메인 - 파일 업로드 예외 처리
+# 3. 메인 - 파일 업로드 예외 처리
 uploaded_file = st.file_uploader("모션 캡처를 진행할 인물 사진을 업로드하세요 (JPG, PNG)", type=["jpg", "jpeg", "png"])
 
 # 예외 처리 1: 파일이 업로드되지 않았을 때
@@ -70,7 +73,7 @@ else:
         elif not results.multi_face_landmarks:
             st.warning("⚠️ 이미지에서 얼굴 관절(Landmarks)을 찾을 수 없습니다. 인물이 명확한 사진을 올려주세요.")
 
-    # 5. 화면 레이아웃 - 원본 vs 3D 렌더링 비교
+    # 4. 화면 레이아웃 - 원본 vs 3D 렌더링 비교
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("📷 원본 인물 이미지")
