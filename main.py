@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw
 import random
 
 # 1. 페이지 설정 및 게임 스타일 CSS 주입
-st.set_page_config(page_title="VTuber Motion Quest 🎮", page_icon="👾", layout="wide")
+st.set_page_config(page_title="Virtual Avatar Motion Quest 🎮", page_icon="👾", layout="wide")
 
 # 귀엽고 심플한 픽셀/게임 스타일 Custom CSS
 st.markdown("""
@@ -60,13 +60,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. 게임 메인 타이틀
-st.markdown('<div class="game-title">👾 VLAST VTuber Motion Capture Quest v1.0 👾</div>', unsafe_allow_html=True)
+# 2. 게임 메인 타이틀 (A옵션: 회사명 제외 버전)
+st.markdown('<div class="game-title">👾 Virtual Avatar Motion Capture Quest v1.0 👾</div>', unsafe_allow_html=True)
 
-# MediaPipe Face Mesh 정석 호출
-mp_face_mesh = mp.solutions.face_mesh
+# 3. MediaPipe Face Mesh 호출 (버전 호환용 안전 코드)
+try:
+    mp_face_mesh = mp.solutions.face_mesh
+except AttributeError:
+    from mediapipe.python.solutions import face_mesh as mp_face_mesh
 
-# 3. 사이드바 - 캐릭터 장비 및 테마 선택 (게임 컨셉)
+# 4. 사이드바 - 캐릭터 장비 및 테마 선택 (게임 컨셉)
 st.sidebar.title("🎮 PLAYER MENU")
 st.sidebar.subheader("🛡️ 렌더링 스킨 선택")
 color_mode = st.sidebar.radio("네온 레이저 컬러", ["⚡ 사이버 그린", "💖 네온 핑크", "🌀 하이퍼 블루", "🔥 아케이드 옐로우"])
@@ -81,7 +84,7 @@ color_dict = {
 show_mesh = st.sidebar.checkbox("3D Mesh 렌더링 활성화", value=True)
 line_width = st.sidebar.slider("레이저 선 두께", 1, 3, 1)
 
-# 4. 게임 퀘스트 영역
+# 5. 게임 퀘스트 영역
 st.write("### 📜 **QUEST:** 얼굴 이미지를 업로드하여 3D 버추얼 아바타 모션 관절을 스캔하세요!")
 
 uploaded_file = st.file_uploader("🖼️ Character Image Upload (.jpg / .png)", type=["jpg", "jpeg", "png"])
@@ -121,7 +124,7 @@ else:
 
                     draw.line([(x1, y1), (x2, y2)], fill=selected_color, width=line_width)
 
-        # 5. 결과 및 게임 보상 결과 출력
+        # 6. 결과 및 게임 보상 결과 출력
         col1, col2 = st.columns(2)
 
         with col1:
@@ -136,7 +139,7 @@ else:
             st.image(annotated_image, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # 6. 게임 스타일 랭킹 & 스코어보드
+        # 7. 게임 스타일 랭킹 & 스코어보드
         st.write("---")
         if results.multi_face_landmarks:
             st.balloons()  # 승리 축하 효과!
