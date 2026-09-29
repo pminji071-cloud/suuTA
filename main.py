@@ -60,16 +60,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. 게임 메인 타이틀 (A옵션: 회사명 제외 버전)
+# 2. 게임 메인 타이틀
 st.markdown('<div class="game-title">👾 Virtual Avatar Motion Capture Quest v1.0 👾</div>', unsafe_allow_html=True)
 
-# 3. MediaPipe Face Mesh 정석 호출 (가장 안정적인 형태)
-try:
-    import mediapipe.python.solutions.face_mesh as mp_face_mesh
-except Exception:
-    mp_face_mesh = mp.solutions.face_mesh
+# 3. MediaPipe Face Mesh 호출
+mp_face_mesh = mp.solutions.face_mesh
 
-# 4. 사이드바 - 캐릭터 장비 및 테마 선택 (게임 컨셉)
+# 4. 사이드바 - 캐릭터 장비 및 테마 선택
 st.sidebar.title("🎮 PLAYER MENU")
 st.sidebar.subheader("🛡️ 렌더링 스킨 선택")
 color_mode = st.sidebar.radio("네온 레이저 컬러", ["⚡ 사이버 그린", "💖 네온 핑크", "🌀 하이퍼 블루", "🔥 아케이드 옐로우"])
@@ -142,7 +139,7 @@ else:
         # 7. 게임 스타일 랭킹 & 스코어보드
         st.write("---")
         if results.multi_face_landmarks:
-            st.balloons()  # 승리 축하 효과!
+            st.balloons()
             score = random.randint(90, 99)
             
             st.markdown(f"""
