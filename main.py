@@ -63,11 +63,11 @@ st.markdown("""
 # 2. 게임 메인 타이틀 (A옵션: 회사명 제외 버전)
 st.markdown('<div class="game-title">👾 Virtual Avatar Motion Capture Quest v1.0 👾</div>', unsafe_allow_html=True)
 
-# 3. MediaPipe Face Mesh 호출 (버전 호환용 안전 코드)
+# 3. MediaPipe Face Mesh 정석 호출 (가장 안정적인 형태)
 try:
+    import mediapipe.python.solutions.face_mesh as mp_face_mesh
+except Exception:
     mp_face_mesh = mp.solutions.face_mesh
-except AttributeError:
-    from mediapipe.python.solutions import face_mesh as mp_face_mesh
 
 # 4. 사이드바 - 캐릭터 장비 및 테마 선택 (게임 컨셉)
 st.sidebar.title("🎮 PLAYER MENU")
