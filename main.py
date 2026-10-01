@@ -83,10 +83,10 @@ else:
     width, height = image.size
     img_array = np.array(image)
 
-    # 6. Holistic 전신 연산 세션 실행
+    # 6. Holistic 전신 연산 세션 (model_complexity=1로 다운받지 않고 기본 내장 모델 사용)
     with mp_holistic.Holistic(
         static_image_mode=True,
-        model_complexity=2,
+        model_complexity=1,
         refine_face_landmarks=True) as holistic:
 
         results = holistic.process(img_array)
@@ -96,7 +96,7 @@ else:
         total_landmarks = 0
         selected_color = color_dict[color_mode]
 
-        # 픽셀 좌표 변환 및 선 그리기 함수 (개선된 구조)
+        # 픽셀 좌표 변환 및 선 그리기 함수
         def draw_connections(landmarks, connections):
             added_count = 0
             if landmarks and show_mesh:
