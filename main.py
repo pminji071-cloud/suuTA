@@ -83,7 +83,7 @@ else:
     width, height = image.size
     img_array = np.array(image)
 
-    # 6. Holistic 전신 연산 세션 (model_complexity=1로 다운받지 않고 기본 내장 모델 사용)
+    # 6. Holistic 전신 연산 세션
     with mp_holistic.Holistic(
         static_image_mode=True,
         model_complexity=1,
@@ -111,11 +111,34 @@ else:
                     draw.line([(x1, y1), (x2, y2)], fill=selected_color, width=line_width)
             return added_count
 
-        # A. 얼굴, 몸, 손 각각 그려주면서 개수 누적
-        total_landmarks += draw_connections(results.face_landmarks, mp_holistic.FACEMESH_TESSELATION)
+        # A. 얼굴: 468개 전체 그물망 대신 핵심 윤곽선(CONTOURS)만 깔끔하게 렌더링
+        total_landmarks += draw_connections(results.face_landmarks, mp_holistic.FACEMESH_CONTOURS)
+        
+        # B. 신체 뼈대 렌더링
         total_landmarks += draw_connections(results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
+        
+        # C. 손가락 렌더링
         total_landmarks += draw_connections(results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
         total_landmarks += draw_connections(results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
+
+        # D. 목 관절(Neck Joint) 수동 연결 로직 (얼굴 턱 - 어깨 중앙 연결)
+        if results.face_landmarks and results.pose_landmarks and show_mesh:
+            # 얼굴 턱 끝점 (Landmark Index 152)
+            chin = results.face_landmarks.landmark[152]
+            chin_x, chin_y = int(chin.x * width), int(chin.y * height)
+
+            # 왼쪽 어깨(11), 오른쪽 어깨(12)
+            l_shoulder = results.pose_landmarks.landmark[11]
+            r_shoulder = results.pose_landmarks.landmark[12]
+
+            # 두 어깨의 중심점(목 뿌리 위치)
+            neck_base_x = int(((l_shoulder.x + r_shoulder.x) / 2) * width)
+            neck_base_y = int(((l_shoulder.y + r_shoulder.y) / 2) * height)
+
+            # 턱 끝에서 목 뿌리, 그리고 양 어깨로 이어지는 목 뼈대 선 그리기
+            draw.line([(chin_x, chin_y), (neck_base_x, neck_base_y)], fill=selected_color, width=line_width)
+            draw.line([(neck_base_x, neck_base_y), (int(l_shoulder.x * width), int(l_shoulder.y * height))], fill=selected_color, width=line_width)
+            draw.line([(neck_base_x, neck_base_y), (int(r_shoulder.x * width), int(r_shoulder.y * height))], fill=selected_color, width=line_width)
 
         # 7. 화면 출력
         col1, col2 = st.columns(2)
@@ -141,7 +164,7 @@ else:
             st.markdown(f"""
             <div class="score-box">
                 🏆 <b>FULL-BODY SCAN CLEAR!</b><br>
-                - 스캔된 총 3D 관절(Landmarks): <b>{total_landmarks} 개</b> (얼굴 + 몸 + 손가락)<br>
+                - 스캔된 총 3D 관절(Landmarks): <b>{total_landmarks} 개</b> (얼굴 윤곽 + 목 + 몸 + 손가락)<br>
                 - 모션 트래킹 싱크율: <b>{score}.5% (S+등급)</b><br>
                 - 획득 칭호: <b>[버추얼 아이돌 메인 TA 🎤]</b>
             </div>
