@@ -53,10 +53,10 @@ st.markdown("""
 # 2. 메인 타이틀
 st.markdown('<div class="game-title">👾 Virtual Idol Full-Body Motion Capture Quest 👾</div>', unsafe_allow_html=True)
 
-# 3. MediaPipe Holistic (얼굴+몸+손 전신 모듈) 호출
+# 3. MediaPipe Holistic (전신 모듈) 호출
 mp_holistic = mp.solutions.holistic
 
-# 4. 사이드바 - 아티스트 제어 메뉴
+# 4. 사이드바 - 메뉴
 st.sidebar.title("🎮 PLAYER MENU")
 st.sidebar.subheader("🛡️ 렌더링 스킨 선택")
 color_mode = st.sidebar.radio("네온 레이저 컬러", ["⚡ 사이버 그린", "💖 네온 핑크", "🌀 하이퍼 블루", "🔥 아케이드 옐로우"])
@@ -71,7 +71,7 @@ color_dict = {
 show_mesh = st.sidebar.checkbox("3D 관절 Wireframe 활성화", value=True)
 line_width = st.sidebar.slider("레이저 선 두께", 1, 4, 2)
 
-# 5. 퀘스트 안내
+# 5. 안내 문구
 st.write("### 📜 **QUEST:** 인물 사진(상반신/전신)을 업로드하여 아바타 3D 관절을 스캔하세요!")
 
 uploaded_file = st.file_uploader("🖼️ Character Image Upload (.jpg / .png)", type=["jpg", "jpeg", "png"])
@@ -96,11 +96,11 @@ else:
         total_landmarks = 0
         selected_color = color_dict[color_mode]
 
-        # 픽셀 좌표 변환 및 선 그리기 함수
+        # 픽셀 좌표 변환 및 선 그리기 함수 (개선된 구조)
         def draw_connections(landmarks, connections):
-            nonlocal total_landmarks
+            added_count = 0
             if landmarks and show_mesh:
-                total_landmarks += len(landmarks.landmark)
+                added_count = len(landmarks.landmark)
                 for conn in connections:
                     pt1 = landmarks.landmark[conn[0]]
                     pt2 = landmarks.landmark[conn[1]]
@@ -109,16 +109,13 @@ else:
                     x2, y2 = int(pt2.x * width), int(pt2.y * height)
 
                     draw.line([(x1, y1), (x2, y2)], fill=selected_color, width=line_width)
+            return added_count
 
-        # A. 얼굴 관절 렌더링
-        draw_connections(results.face_landmarks, mp_holistic.FACEMESH_TESSELATION)
-
-        # B. 몸(신체 33개 관절) 렌더링
-        draw_connections(results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
-
-        # C. 왼손 및 오른손 렌더링
-        draw_connections(results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
-        draw_connections(results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
+        # A. 얼굴, 몸, 손 각각 그려주면서 개수 누적
+        total_landmarks += draw_connections(results.face_landmarks, mp_holistic.FACEMESH_TESSELATION)
+        total_landmarks += draw_connections(results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
+        total_landmarks += draw_connections(results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
+        total_landmarks += draw_connections(results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
 
         # 7. 화면 출력
         col1, col2 = st.columns(2)
