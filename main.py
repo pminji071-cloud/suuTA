@@ -173,8 +173,14 @@ else:
         tfile.write(uploaded_file.read())
 
         cap = cv2.VideoCapture(tfile.name)
+        
+        # 동영상 출력용 카드 UI 영역 생성
+        st.markdown('<div class="game-card">', unsafe_allow_html=True)
+        st.subheader("🎬 실시간 전신 모션 캡처 스트리밍")
         st_frame = st.empty()
-        status_box = st.empty() # 👈 메시지가 겹치지 않게 바꿔치기할 빈 공간 생성
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        status_box = st.empty()
 
         with mp_holistic.Holistic(
             static_image_mode=False,
@@ -196,7 +202,9 @@ else:
                 results = holistic.process(frame_rgb)
                 annotated_frame, _ = process_and_draw(pil_img, results, w, h)
 
-                st_frame.image(annotated_frame, use_container_width=True)
+                # 프레임 이미지 출력 안전 장치 추가
+                if annotated_frame is not None:
+                    st_frame.image(annotated_frame, use_container_width=True)
 
             cap.release()
-            status_box.success("🎉 동영상 모션 캡처가 완료되었습니다!") # 👈 진행 중 메시지를 완료 메시지로 깔끔하게 교체!
+            status_box.success("🎉 동영상 모션 캡처가 완료되었습니다!")
