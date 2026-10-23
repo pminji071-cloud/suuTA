@@ -174,6 +174,7 @@ else:
 
         cap = cv2.VideoCapture(tfile.name)
         st_frame = st.empty()
+        status_box = st.empty() # 👈 메시지가 겹치지 않게 바꿔치기할 빈 공간 생성
 
         with mp_holistic.Holistic(
             static_image_mode=False,
@@ -181,7 +182,7 @@ else:
             smooth_landmarks=True,
             refine_face_landmarks=True) as holistic:
 
-            st.warning("🎬 동영상 모션 캡처가 진행 중입니다. 잠시만 기다려주세요...")
+            status_box.warning("🎬 동영상 모션 캡처가 진행 중입니다. 잠시만 기다려주세요...")
 
             while cap.isOpened():
                 ret, frame = cap.read()
@@ -198,4 +199,4 @@ else:
                 st_frame.image(annotated_frame, use_container_width=True)
 
             cap.release()
-            st.success("🎉 동영상 모션 캡처가 완료되었습니다!")
+            status_box.success("🎉 동영상 모션 캡처가 완료되었습니다!") # 👈 진행 중 메시지를 완료 메시지로 깔끔하게 교체!
