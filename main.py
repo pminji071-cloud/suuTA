@@ -198,4 +198,4 @@ else:
                 st_frame.image(annotated_frame, use_container_width=True)
 
             cap.release()
-            st.success("🎉 동영상 모션 캡처가
+            st.success("🎉 동영상 모션 캡처가 완료되었습니다!")
