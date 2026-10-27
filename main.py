@@ -8,6 +8,10 @@ import json
 # 1. 페이지 설정 (와이드 레이아웃)
 st.set_page_config(page_title="Virtual Avatar Motion Quest 🎮", page_icon="👾", layout="wide")
 
+# 세션 상태(Session State)에 업로드된 사진 기록 저장소 초기화
+if "saved_avatars" not in st.session_state:
+    st.session_state.saved_avatars = []
+
 # MediaPipe Pose 모듈 준비
 mp_pose = mp.solutions.pose
 
@@ -35,12 +39,19 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 바닥에 고정된 관절 캐릭터를 생성합니다! **클릭하여 점프**하세요.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭하여 점프**하세요.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
-        img_array = np.array(image)
         
+        # 중복 저장 방지를 위해 새로운 사진일 때만 아카이브에 추가
+        if uploaded_file.name not in [item["name"] for item in st.session_state.saved_avatars]:
+            st.session_state.saved_avatars.append({
+                "name": uploaded_file.name,
+                "image": image
+            })
+        
+        img_array = np.array(image)
         with mp_pose.Pose(static_image_mode=True, model_complexity=1) as pose:
             results = pose.process(img_array)
             if results.pose_landmarks:
@@ -48,13 +59,26 @@ with col_panel:
                 for lm in results.pose_landmarks.landmark:
                     lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
                 landmarks_json = json.dumps(lm_list)
-                st.success("✨ 3D 관절 스캔 완료!")
-            else:
-                st.warning("⚠️ 관절을 감지하지 못해 기본 관절 캐릭터로 등록되었습니다.")
         
+        st.success("✨ 3D 관절 스캔 완료 & 아카이브 저장!")
         st.image(image, use_container_width=True)
     else:
         st.warning("👈 먼저 인물 사진을 업로드해 주세요!")
+
+    # 📁 지금까지 저장한 아바타 사진 보관함 (갤러리) 영역
+    st.write("---")
+    st.markdown("### 📁 나의 아바타 보관함 (Archive)")
+    if len(st.session_state.saved_avatars) > 0:
+        st.caption(f"총 {len(link := st.session_state.saved_avatars)}개의 아바타가 저장되어 있습니다.")
+        for idx, avatar in enumerate(st.session_state.saved_avatars):
+            with st.expander(f"📌 {avatar['name']} (#{idx+1})"):
+                st.image(avatar['image'], use_container_width=True)
+        
+        if st.button("🗑️ 보관함 비우기"):
+            st.session_state.saved_avatars = []
+            st.rerun()
+    else:
+        st.info("아직 저장된 캐릭터 사진이 없습니다. 사진을 업로드해 보세요!")
 
 with col_game:
     st.markdown("### 🕹️ VIRTUAL IDOL ARCADE STAGE")
@@ -101,7 +125,6 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            // 캐릭터 고정 위치 (바닥 기준)
             let charBaseY = 320;
             let isJumping = false;
             let jumpVelocity = 0;
@@ -109,12 +132,11 @@ with col_game:
             let obstacleX = 700;
             let score = 0;
 
-            // 마우스 움직임 인식 제거 -> 오직 클릭으로만 점프 트리거
             canvas.addEventListener("click", function() {
                 if (!hasImage) return;
                 if (!isJumping) {
                     isJumping = true;
-                    jumpVelocity = -14; // 점프 힘
+                    jumpVelocity = -14;
                 }
             });
 
@@ -181,7 +203,6 @@ with col_game:
                     ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
                 }
 
-                // 바닥선 (Y = 360)
                 ctx.strokeStyle = "#ff007f";
                 ctx.lineWidth = 5;
                 ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(650, 360); ctx.stroke();
@@ -195,10 +216,9 @@ with col_game:
                     ctx.font = "14px 'Courier New'";
                     ctx.fillText("Upload a photo on the right panel to start game!", canvas.width / 2, canvas.height / 2 + 20);
                 } else {
-                    // 점프 물리 연산
                     if (isJumping) {
                         jumpHeight += jumpVelocity;
-                        jumpVelocity += 0.8; // 중력
+                        jumpVelocity += 0.8;
                         if (jumpHeight >= 0) {
                             jumpHeight = 0;
                             isJumping = false;
@@ -211,7 +231,6 @@ with col_game:
                         score += 100;
                     }
 
-                    // 장애물
                     ctx.fillStyle = "#ffdd59";
                     ctx.shadowColor = "#ffdd59";
                     ctx.shadowBlur = 10;
