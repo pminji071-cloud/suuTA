@@ -35,7 +35,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **Python AI가 관절(Landmarks)을 정밀 스캔**하여 바닥에 밀착된 관절 캐릭터를 생성합니다!")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 바닥에 고정된 관절 캐릭터를 생성합니다! **클릭하여 점프**하세요.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -48,9 +48,9 @@ with col_panel:
                 for lm in results.pose_landmarks.landmark:
                     lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
                 landmarks_json = json.dumps(lm_list)
-                st.success("✨ 3D 관절 스캔 완료! 아바타가 바닥에 밀착되었습니다.")
+                st.success("✨ 3D 관절 스캔 완료!")
             else:
-                st.warning("⚠️ 사진에서 관절을 감지하지 못해 기본 관절 캐릭터로 등록되었습니다.")
+                st.warning("⚠️ 관절을 감지하지 못해 기본 관절 캐릭터로 등록되었습니다.")
         
         st.image(image, use_container_width=True)
     else:
@@ -101,29 +101,20 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            // 바닥선 기준(Y=360)에 캐릭터 발이 정확히 닿도록 초기 Y값 조정
-            let charY = 320;
-            let targetY = 320;
+            // 캐릭터 고정 위치 (바닥 기준)
+            let charBaseY = 320;
             let isJumping = false;
             let jumpVelocity = 0;
             let jumpHeight = 0;
             let obstacleX = 700;
             let score = 0;
 
-            canvas.addEventListener("mousemove", function(e) {
-                if (!hasImage) return;
-                const rect = canvas.getBoundingClientRect();
-                targetY = e.clientY - rect.top;
-                // 바닥 영역(Y: 150 ~ 320) 내에서만 마우스 조종 허용
-                if(targetY < 150) targetY = 150;
-                if(targetY > 320) targetY = 320;
-            });
-
+            // 마우스 움직임 인식 제거 -> 오직 클릭으로만 점프 트리거
             canvas.addEventListener("click", function() {
                 if (!hasImage) return;
                 if (!isJumping) {
                     isJumping = true;
-                    jumpVelocity = -13;
+                    jumpVelocity = -14; // 점프 힘
                 }
             });
 
@@ -202,13 +193,12 @@ with col_game:
                     ctx.fillText("⚠️ WAITING FOR CHARACTER IMAGE", canvas.width / 2, canvas.height / 2 - 15);
                     ctx.fillStyle = "#00fff5";
                     ctx.font = "14px 'Courier New'";
-                    ctx.fillText("Upload a photo on the right panel to generate pose character!", canvas.width / 2, canvas.height / 2 + 20);
+                    ctx.fillText("Upload a photo on the right panel to start game!", canvas.width / 2, canvas.height / 2 + 20);
                 } else {
-                    if (!isJumping) {
-                        charY += (targetY - charY) * 0.15;
-                    } else {
+                    // 점프 물리 연산
+                    if (isJumping) {
                         jumpHeight += jumpVelocity;
-                        jumpVelocity += 0.8;
+                        jumpVelocity += 0.8; // 중력
                         if (jumpHeight >= 0) {
                             jumpHeight = 0;
                             isJumping = false;
@@ -221,14 +211,14 @@ with col_game:
                         score += 100;
                     }
 
-                    // 장애물 (바닥에 밀착)
+                    // 장애물
                     ctx.fillStyle = "#ffdd59";
                     ctx.shadowColor = "#ffdd59";
                     ctx.shadowBlur = 10;
                     ctx.fillRect(obstacleX, 310, 35, 50);
                     ctx.shadowBlur = 0;
 
-                    let renderY = charY + jumpHeight;
+                    let renderY = charBaseY + jumpHeight;
                     drawPoseCharacter(120, renderY, poseLandmarks);
 
                     ctx.fillStyle = "#00fff5";
@@ -238,7 +228,7 @@ with col_game:
 
                     ctx.fillStyle = "#ffffff";
                     ctx.font = "14px 'Courier New'";
-                    ctx.fillText("🖱️ Move Mouse | Click to Jump", 330, 40);
+                    ctx.fillText("🖱️ Click to Jump!", 460, 40);
                 }
 
                 requestAnimationFrame(update);
