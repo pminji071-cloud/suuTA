@@ -165,7 +165,6 @@ with col_game:
             const canvas = document.getElementById("gameCanvas");
             const ctx = canvas.getContext("2d");
 
-            // ⭐ 웹 오디오 컨텍스트 설정 (뿅 효과음 재생용)
             let audioCtx = null;
 
             function initAudio() {
@@ -183,7 +182,6 @@ with col_game:
                     let gainNode = audioCtx.createGain();
 
                     osc.type = 'sine';
-                    // 주파수가 낮았다가 높게 휙 올라가면서 "뿅!" 소리를 냄
                     osc.frequency.setValueAtTime(400, audioCtx.currentTime);
                     osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.15);
 
@@ -203,7 +201,8 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            let charBaseY = 470;
+            // ⭐ 발이 바닥 라인(510px)에 정확히 안착하도록 기준 Y 좌표 조정
+            let charBaseY = 510;
             let charX = 180;
             
             let jumpCount = 0;
@@ -307,7 +306,7 @@ with col_game:
             }
 
             canvas.addEventListener("click", function(e) {
-                initAudio(); // 클릭 시 오디오 활성화
+                initAudio();
                 if (!hasImage) return;
 
                 const rect = canvas.getBoundingClientRect();
@@ -349,7 +348,7 @@ with col_game:
             });
 
             window.addEventListener("keydown", function(e) {
-                initAudio(); // 키 입력 시 오디오 활성화
+                initAudio();
                 if (!hasImage) return;
 
                 if (e.code === "Space") {
@@ -609,6 +608,7 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
+                // ⭐ 바닥선 Y 좌표를 510으로 고정
                 ctx.strokeStyle = "#ffb7b2";
                 ctx.lineWidth = 4;
                 ctx.beginPath(); ctx.moveTo(0, 510); ctx.lineTo(1100, 510); ctx.stroke();
@@ -627,6 +627,7 @@ with col_game:
                             jumpHeight += jumpVelocity;
                             jumpVelocity += 0.75;
                             
+                            # ⭐ 착지 시 바닥을 뚫지 않고 정확히 0(바닥)에 딱 멈추도록 보정
                             if (jumpHeight >= 0) {
                                 jumpHeight = 0;
                                 jumpCount = 0;
@@ -668,7 +669,7 @@ with col_game:
                                 score += 100; 
                                 starActive = false;
                                 starEffectTimer = 30;
-                                playPpyongSound(); // ⭐ 별 먹을 때 뿅 사운드 재생!
+                                playPpyongSound();
                             }
                         }
 
