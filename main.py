@@ -39,12 +39,11 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭하여 점프**하세요.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭하여 점프**하며, **ESC 키**를 눌러 게임을 일시 정지할 수 있습니다.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
         
-        # 중복 저장 방지를 위해 새로운 사진일 때만 아카이브에 추가
         if uploaded_file.name not in [item["name"] for item in st.session_state.saved_avatars]:
             st.session_state.saved_avatars.append({
                 "name": uploaded_file.name,
@@ -65,11 +64,10 @@ with col_panel:
     else:
         st.warning("👈 먼저 인물 사진을 업로드해 주세요!")
 
-    # 📁 지금까지 저장한 아바타 사진 보관함 (갤러리) 영역
     st.write("---")
     st.markdown("### 📁 나의 아바타 보관함 (Archive)")
     if len(st.session_state.saved_avatars) > 0:
-        st.caption(f"총 {len(link := st.session_state.saved_avatars)}개의 아바타가 저장되어 있습니다.")
+        st.caption(f"총 {len(st.session_state.saved_avatars)}개의 아바타가 저장되어 있습니다.")
         for idx, avatar in enumerate(st.session_state.saved_avatars):
             with st.expander(f"📌 {avatar['name']} (#{idx+1})"):
                 st.image(avatar['image'], use_container_width=True)
@@ -131,12 +129,21 @@ with col_game:
             let jumpHeight = 0;
             let obstacleX = 700;
             let score = 0;
+            let isPaused = false; // 일시 정지 상태 변수
 
+            // 마우스 클릭 점프 (정지 상태가 아닐 때만 작동)
             canvas.addEventListener("click", function() {
-                if (!hasImage) return;
+                if (!hasImage || isPaused) return;
                 if (!isJumping) {
                     isJumping = true;
                     jumpVelocity = -14;
+                }
+            });
+
+            // ESC 키 입력 시 게임 일시 정지 / 재개 토글
+            window.addEventListener("keydown", function(e) {
+                if (e.key === "Escape") {
+                    isPaused = !isPaused;
                 }
             });
 
@@ -216,19 +223,22 @@ with col_game:
                     ctx.font = "14px 'Courier New'";
                     ctx.fillText("Upload a photo on the right panel to start game!", canvas.width / 2, canvas.height / 2 + 20);
                 } else {
-                    if (isJumping) {
-                        jumpHeight += jumpVelocity;
-                        jumpVelocity += 0.8;
-                        if (jumpHeight >= 0) {
-                            jumpHeight = 0;
-                            isJumping = false;
+                    // 일시 정지 상태가 아닐 때만 게임 요소 업데이트
+                    if (!isPaused) {
+                        if (isJumping) {
+                            jumpHeight += jumpVelocity;
+                            jumpVelocity += 0.8;
+                            if (jumpHeight >= 0) {
+                                jumpHeight = 0;
+                                isJumping = false;
+                            }
                         }
-                    }
 
-                    obstacleX -= 6;
-                    if (obstacleX < -40) {
-                        obstacleX = 700;
-                        score += 100;
+                        obstacleX -= 6;
+                        if (obstacleX < -40) {
+                            obstacleX = 700;
+                            score += 100;
+                        }
                     }
 
                     ctx.fillStyle = "#ffdd59";
@@ -247,7 +257,22 @@ with col_game:
 
                     ctx.fillStyle = "#ffffff";
                     ctx.font = "14px 'Courier New'";
-                    ctx.fillText("🖱️ Click to Jump!", 460, 40);
+                    ctx.fillText("🖱️ Click to Jump | [ESC] Pause", 300, 40);
+
+                    // 일시 정지 오버레이 안내 문구
+                    if (isPaused) {
+                        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                        ctx.fillStyle = "#ff007f";
+                        ctx.font = "bold 28px 'Courier New'";
+                        ctx.textAlign = "center";
+                        ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2 - 10);
+
+                        ctx.fillStyle = "#00fff5";
+                        ctx.font = "14px 'Courier New'";
+                        ctx.fillText("Press [ESC] to Resume", canvas.width / 2, canvas.height / 2 + 25);
+                    }
                 }
 
                 requestAnimationFrame(update);
