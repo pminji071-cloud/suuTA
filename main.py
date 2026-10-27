@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **칼리고의 다크 악당 장애물**을 Space 2단점프와 Ctrl 숙이기로 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 캐릭터를 생성합니다! **눈이 편안한 딥 다크 배경**에서 Space 2단점프와 Ctrl 숙이기로 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -89,8 +89,8 @@ with col_game:
     <head>
     <style>
         body { 
-            background-color: #0f3460; 
-            color: #ffffff; 
+            background-color: #0f172a; 
+            color: #e2e8f0; 
             text-align: center; 
             font-family: 'Courier New', Courier, monospace; 
             margin: 0; 
@@ -103,10 +103,10 @@ with col_game:
             justify-content: center;
         }
         canvas { 
-            background: #1a1a2e; 
-            border: 3px solid #00fff5; 
+            background: #0f172a; 
+            border: 2px solid #334155; 
             border-radius: 12px; 
-            box-shadow: 0 0 25px rgba(0, 255, 245, 0.4);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
             cursor: pointer;
         }
     </style>
@@ -138,7 +138,7 @@ with col_game:
             let obstacleY = 310;
             let obstacleSpeed = 6;
             let obstacleShape = "crystal";
-            let obstacleColor = "#9d4edd";
+            let obstacleColor = "#6b21a8";
             
             let score = 0;
             let isPaused = false;
@@ -147,9 +147,9 @@ with col_game:
             let countdownValue = 3;
             let countdownTimer = null;
 
-            // 칼리고 악당 테마 모양 리스트 (크리스탈, 다크 스파이크, 악당 코어, 섀도우 블레이드)
+            // 눈이 편안한 톤다운 악당 칼리고 컬러 팔레트
             const caligoShapes = ["crystal", "spike", "core", "blade"];
-            const caligoColors = ["#9d4edd", "#7b2cbf", "#ff0054", "#3f37c9", "#480ca8", "#ff4d6d"];
+            const caligoColors = ["#6b21a8", "#581c87", "#9f1239", "#1e1b4b", "#312e81", "#881337"];
 
             function resetObstacle() {
                 obstacleWidth = Math.floor(25 + Math.random() * 35);
@@ -281,7 +281,7 @@ with col_game:
                 ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
                 ctx.lineWidth = 3;
                 ctx.shadowColor = "SKIN_COLOR_PLACEHOLDER";
-                ctx.shadowBlur = 10;
+                ctx.shadowBlur = 4;
 
                 let scale = crouching ? 65 : 110;
                 let offsetY = crouching ? 35 : 0;
@@ -311,7 +311,7 @@ with col_game:
                         if ([11,12,13,14,15,16,23,24,25,26,27,28].indexOf(idx) !== -1 && lm.visibility > 0.3) {
                             ctx.beginPath();
                             ctx.arc(x + (lm.x - 0.5) * scale, offsetY + y + (lm.y - 0.5) * scale, 4, 0, Math.PI * 2);
-                            ctx.fillStyle = "#ffffff";
+                            ctx.fillStyle = "#e2e8f0";
                             ctx.fill();
                             ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
                         }
@@ -325,14 +325,12 @@ with col_game:
                 ctx.shadowBlur = 0;
             }
 
-            // 칼리고 악당 스타일의 독특하고 위협적인 장애물 렌더링
             function drawObstacle() {
                 ctx.fillStyle = obstacleColor;
-                ctx.shadowColor = "#ff0054";
-                ctx.shadowBlur = 15;
+                ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+                ctx.shadowBlur = 6;
 
                 if (obstacleShape === "crystal") {
-                    // 다크 크리스탈 모양 (마름모형 육면체)
                     ctx.beginPath();
                     ctx.moveTo(obstacleX + obstacleWidth / 2, obstacleY);
                     ctx.lineTo(obstacleX + obstacleWidth, obstacleY + obstacleHeight * 0.4);
@@ -341,7 +339,6 @@ with col_game:
                     ctx.closePath();
                     ctx.fill();
                 } else if (obstacleShape === "spike") {
-                    // 뾰족한 악당 스파이크
                     ctx.beginPath();
                     ctx.moveTo(obstacleX + obstacleWidth / 2, obstacleY);
                     ctx.lineTo(obstacleX + obstacleWidth, obstacleY + obstacleHeight);
@@ -349,18 +346,15 @@ with col_game:
                     ctx.closePath();
                     ctx.fill();
                 } else if (obstacleShape === "core") {
-                    // 칼리고 다크 코어 (빛나는 원형 에너지 오브)
                     let radius = obstacleWidth / 2;
                     ctx.beginPath();
                     ctx.arc(obstacleX + radius, obstacleY + radius, radius, 0, Math.PI * 2);
                     ctx.fill();
-                    // 내부 코어 눈동자/심볼 표현
-                    ctx.fillStyle = "#ffffff";
+                    ctx.fillStyle = "#94a3b8";
                     ctx.beginPath();
                     ctx.arc(obstacleX + radius, obstacleY + radius, radius * 0.4, 0, Math.PI * 2);
                     ctx.fill();
                 } else if (obstacleShape === "blade") {
-                    // 회전하는 섀도우 블레이드 (별/십자 날카로운 형태)
                     let cx = obstacleX + obstacleWidth / 2;
                     let cy = obstacleY + obstacleHeight / 2;
                     let size = obstacleWidth / 2;
@@ -379,50 +373,55 @@ with col_game:
                 ctx.shadowBlur = 0;
             }
 
+            // 채도 및 눈부심을 줄인 차분하고 딥한 톤다운 배경 렌더링
             function drawGorgeousBackground(themeLevel) {
                 if (themeLevel === 0) {
+                    // 🌌 0~999점: 딥 다크 우주
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
-                    bgGrad.addColorStop(0, "#03001e");
-                    bgGrad.addColorStop(0.5, "#7303c0");
-                    bgGrad.addColorStop(1, "#ec38bc");
+                    bgGrad.addColorStop(0, "#090d16");
+                    bgGrad.addColorStop(0.5, "#1e1b4b");
+                    bgGrad.addColorStop(1, "#172554");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "#ffffff";
+                    ctx.fillStyle = "rgba(226, 232, 240, 0.4)";
                     let stars = [ [50,40], [120,90], [230,30], [340,110], [420,60], [510,130], [600,45], [80,180], [290,220], [480,190] ];
-                    stars.forEach(s => { ctx.fillRect(s[0], s[1], 2, 2); });
+                    stars.forEach(s => { ctx.fillRect(s[0], s[1], 1.5, 1.5); });
                 } else if (themeLevel === 1) {
+                    // ⛰️ 1,000~1,999점: 차분한 밤 산맥
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
-                    bgGrad.addColorStop(0, "#2c3e50");
-                    bgGrad.addColorStop(1, "#f1f2f6");
+                    bgGrad.addColorStop(0, "#0f172a");
+                    bgGrad.addColorStop(1, "#1e293b");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "#4b6584";
-                    ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(120, 180); ctx.lineTo(280, 360); ctx.fill();
-                    ctx.beginPath(); ctx.moveTo(200, 360); ctx.lineTo(380, 130); ctx.lineTo(580, 360); ctx.fill();
-                    ctx.fillStyle = "#38adae";
-                    ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(180, 220); ctx.lineTo(400, 360); ctx.fill();
-                    ctx.beginPath(); ctx.moveTo(350, 360); ctx.lineTo(520, 190); ctx.lineTo(650, 360); ctx.fill();
+                    ctx.fillStyle = "#1e293b";
+                    ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(120, 200); ctx.lineTo(280, 360); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(200, 360); ctx.lineTo(380, 150); ctx.lineTo(580, 360); ctx.fill();
+                    ctx.fillStyle = "#334155";
+                    ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(180, 240); ctx.lineTo(400, 360); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(350, 360); ctx.lineTo(520, 210); ctx.lineTo(650, 360); ctx.fill();
                 } else if (themeLevel === 2) {
+                    // 🌊 2,000~2,999점: 차분한 밤 바다
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
-                    bgGrad.addColorStop(0, "#00c6ff");
-                    bgGrad.addColorStop(1, "#0072ff");
+                    bgGrad.addColorStop(0, "#0c4a6e");
+                    bgGrad.addColorStop(1, "#075985");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
-                    ctx.beginPath(); ctx.arc(150, 240, 120, Math.PI, 0, false); ctx.fill();
-                    ctx.beginPath(); ctx.arc(480, 280, 160, Math.PI, 0, false); ctx.fill();
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+                    ctx.beginPath(); ctx.arc(150, 250, 120, Math.PI, 0, false); ctx.fill();
+                    ctx.beginPath(); ctx.arc(480, 290, 160, Math.PI, 0, false); ctx.fill();
                 } else if (themeLevel === 3) {
+                    // ☁️ 3,000~3,999점: 톤다운된 노을 하늘
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
-                    bgGrad.addColorStop(0, "#ff7e5f");
-                    bgGrad.addColorStop(0.6, "#feb47b");
-                    bgGrad.addColorStop(1, "#ffcc70");
+                    bgGrad.addColorStop(0, "#451a03");
+                    bgGrad.addColorStop(0.6, "#78350f");
+                    bgGrad.addColorStop(1, "#292524");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
                     ctx.beginPath();
                     ctx.arc(120, 140, 45, 0, Math.PI * 2);
                     ctx.arc(165, 125, 55, 0, Math.PI * 2);
@@ -434,36 +433,35 @@ with col_game:
                     ctx.arc(510, 165, 60, 0, Math.PI * 2);
                     ctx.fill();
                 } else if (themeLevel === 4) {
+                    // 🪐 4,000~4,999점: 딥 외계 행성
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
-                    bgGrad.addColorStop(0, "#1f1c2c");
-                    bgGrad.addColorStop(1, "#928dab");
+                    bgGrad.addColorStop(0, "#18181b");
+                    bgGrad.addColorStop(1, "#27272a");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "#ff512f";
+                    ctx.fillStyle = "#71717a";
                     ctx.beginPath(); ctx.arc(500, 110, 65, 0, Math.PI * 2); ctx.fill();
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-                    ctx.lineWidth = 5;
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+                    ctx.lineWidth = 4;
                     ctx.beginPath(); ctx.ellipse(500, 110, 105, 30, 0.4, 0, Math.PI * 2); ctx.stroke();
                 } else {
+                    // 🏰 5,000점 이상: 딥 판타지 요새
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
-                    bgGrad.addColorStop(0, "#141e30");
-                    bgGrad.addColorStop(1, "#243b55");
+                    bgGrad.addColorStop(0, "#020617");
+                    bgGrad.addColorStop(1, "#0f172a");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "#0b132b";
+                    ctx.fillStyle = "#1e293b";
                     ctx.fillRect(60, 180, 90, 180);
                     ctx.fillRect(480, 150, 110, 210);
                     ctx.beginPath(); ctx.moveTo(60, 180); ctx.lineTo(105, 110); ctx.lineTo(150, 180); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(480, 150); ctx.lineTo(535, 80); ctx.lineTo(590, 150); ctx.fill();
 
-                    ctx.fillStyle = "#ffd700";
-                    ctx.shadowColor = "#ffd700";
-                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = "#ca8a04";
                     ctx.fillRect(85, 210, 15, 30); ctx.fillRect(115, 210, 15, 30);
                     ctx.fillRect(510, 180, 20, 35); ctx.fillRect(550, 180, 20, 35);
-                    ctx.shadowBlur = 0;
                 }
             }
 
@@ -473,16 +471,17 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
-                ctx.strokeStyle = "#ff007f";
-                ctx.lineWidth = 5;
+                // 은은한 바닥선
+                ctx.strokeStyle = "#475569";
+                ctx.lineWidth = 4;
                 ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(650, 360); ctx.stroke();
 
                 if (!hasImage) {
-                    ctx.fillStyle = "#ff007f";
+                    ctx.fillStyle = "#f43f5e";
                     ctx.font = "bold 20px 'Courier New'";
                     ctx.textAlign = "center";
                     ctx.fillText("⚠️ WAITING FOR CHARACTER IMAGE", canvas.width / 2, canvas.height / 2 - 15);
-                    ctx.fillStyle = "#00fff5";
+                    ctx.fillStyle = "#38bdf8";
                     ctx.font = "14px 'Courier New'";
                     ctx.fillText("Upload a photo on the right panel to start game!", canvas.width / 2, canvas.height / 2 + 20);
                 } else {
@@ -522,68 +521,68 @@ with col_game:
                     let renderY = charBaseY + jumpHeight;
                     drawPoseCharacter(charX, renderY, poseLandmarks, isCrouching);
 
-                    const themeNames = ["🌌 우주 테마", "⛰️ 산 테마", "🌊 바다 테마", "☁️ 하늘 테마", "🪐 행성 테마", "🏰 성 테마"];
-                    ctx.fillStyle = "#ffffff";
+                    const themeNames = ["🌌 딥 우주", "⛰️ 밤 산맥", "🌊 밤 바다", "☁️ 노을 하늘", "🪐 외계 행성", "🏰 다크 요새"];
+                    ctx.fillStyle = "#e2e8f0";
                     ctx.font = "bold 13px 'Courier New'";
                     ctx.textAlign = "left";
                     ctx.fillText("SCORE: " + score + " [" + themeNames[themeLevel] + "]", 20, 35);
 
-                    ctx.fillStyle = "#00fff5";
+                    ctx.fillStyle = "#94a3b8";
                     ctx.font = "11px 'Courier New'";
                     ctx.fillText("⌨️ Space(x2):2단점프 | Ctrl:숙이기 | ESC:일시정지", 195, 35);
 
                     if (isGameOver) {
-                        ctx.fillStyle = "rgba(15, 52, 96, 0.9)";
+                        ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                        ctx.fillStyle = "#ff007f";
+                        ctx.fillStyle = "#f43f5e";
                         ctx.font = "bold 32px 'Courier New'";
                         ctx.textAlign = "center";
                         ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20);
 
-                        ctx.fillStyle = "#00fff5";
+                        ctx.fillStyle = "#38bdf8";
                         ctx.font = "16px 'Courier New'";
                         ctx.fillText("Final Score: " + score, canvas.width / 2, canvas.height / 2 + 15);
 
-                        ctx.fillStyle = "#ffffff";
+                        ctx.fillStyle = "#94a3b8";
                         ctx.font = "14px 'Courier New'";
                         ctx.fillText("Click or Space to restart", canvas.width / 2, canvas.height / 2 + 55);
                     }
 
                     if (isPaused) {
-                        ctx.fillStyle = "rgba(15, 52, 96, 0.85)";
+                        ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                        ctx.fillStyle = "#ff007f";
+                        ctx.fillStyle = "#f43f5e";
                         ctx.font = "bold 26px 'Courier New'";
                         ctx.textAlign = "center";
                         ctx.fillText("GAME PAUSED", canvas.width / 2, 120);
 
-                        ctx.fillStyle = "#00fff5";
+                        ctx.fillStyle = "#0284c7";
                         ctx.fillRect(225, 210, 200, 40);
-                        ctx.fillStyle = "#0f3460";
+                        ctx.fillStyle = "#ffffff";
                         ctx.font = "bold 15px 'Courier New'";
                         ctx.fillText("▶ 이어서 재생", canvas.width / 2, 235);
 
-                        ctx.fillStyle = "#ffdd59";
+                        ctx.fillStyle = "#475569";
                         ctx.fillRect(225, 270, 200, 40);
-                        ctx.fillStyle = "#0f3460";
+                        ctx.fillStyle = "#ffffff";
                         ctx.fillText("🔄 처음으로", canvas.width / 2, 295);
                     }
 
                     if (isCountdown) {
-                        ctx.fillStyle = "rgba(15, 52, 96, 0.85)";
+                        ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                        ctx.fillStyle = "#00fff5";
+                        ctx.fillStyle = "#38bdf8";
                         ctx.font = "bold 60px 'Courier New'";
                         ctx.textAlign = "center";
-                        ctx.shadowColor = "#00fff5";
-                        ctx.shadowBlur = 20;
+                        ctx.shadowColor = "#38bdf8";
+                        ctx.shadowBlur = 10;
                         ctx.fillText(countdownValue, canvas.width / 2, canvas.height / 2 + 15);
                         ctx.shadowBlur = 0;
 
-                        ctx.fillStyle = "#ffffff";
+                        ctx.fillStyle = "#94a3b8";
                         ctx.font = "16px 'Courier New'";
                         ctx.fillText("GET READY...", canvas.width / 2, canvas.height / 2 - 50);
                     }
