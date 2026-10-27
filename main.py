@@ -67,7 +67,7 @@ if "saved_avatars" not in st.session_state:
 
 mp_pose = mp.solutions.pose
 
-# 2. 레이아웃 비율 조정 (게임 화면이 잘리지 않도록 좌우 비율 최적화)
+# 2. 레이아웃 비율 조정
 col_game, col_panel = st.columns([2.8, 1])
 
 landmarks_json = "null"
@@ -161,7 +161,6 @@ with col_game:
     </head>
     <body>
         <div class="game-container">
-            <!-- 캔버스 내부 해상도를 최적화하여 화면 잘림 방지 -->
             <canvas id="gameCanvas" width="950" height="520"></canvas>
         </div>
 
@@ -205,7 +204,8 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            let charBaseY = 460;
+            let floorY = 360; // ⭐ 중간 바닥선 위치
+            let charBaseY = floorY; 
             let charX = 150;
             
             let jumpCount = 0;
@@ -217,13 +217,13 @@ with col_game:
             let obstacleX = 1000;
             let obstacleWidth = 40;
             let obstacleHeight = 50;
-            let obstacleY = 410;
+            let obstacleY = floorY - 50;
             let obstacleSpeed = 5;
             let obstacleShape = "crystal";
             let obstacleColor = "#ff9aa2";
 
             let starX = -200;
-            let starY = 280;
+            let starY = 250;
             let starActive = false;
             let starEffectTimer = 0;
 
@@ -266,9 +266,9 @@ with col_game:
 
                 const isAir = Math.random() < 0.35;
                 if (isAir) {
-                    obstacleY = 280 + Math.random() * 50;
+                    obstacleY = floorY - 110 + Math.random() * 30;
                 } else {
-                    obstacleY = 460 - obstacleHeight;
+                    obstacleY = floorY - obstacleHeight;
                 }
 
                 obstacleX = 950 + Math.random() * 350;
@@ -278,7 +278,7 @@ with col_game:
                 if (!starActive && Math.random() < 0.25) {
                     starActive = true;
                     starX = 950 + Math.random() * 250;
-                    starY = Math.random() < 0.5 ? 280 : 400; 
+                    starY = Math.random() < 0.5 ? floorY - 100 : floorY - 40; 
                 }
             }
 
@@ -406,8 +406,8 @@ with col_game:
                 ctx.shadowColor = "SKIN_COLOR_PLACEHOLDER";
                 ctx.shadowBlur = 8;
 
-                let scale = crouching ? 70 : 120;
-                let offsetY = crouching ? 35 : 0;
+                let scale = crouching ? 65 : 110;
+                let offsetY = crouching ? 25 : 0;
 
                 if (landmarks && landmarks.length > 0) {
                     POSE_CONNECTIONS.forEach(function(pair) {
@@ -426,7 +426,7 @@ with col_game:
                     const nose = landmarks[0];
                     if (nose) {
                         ctx.beginPath();
-                        ctx.arc(x + (nose.x - 0.5) * scale, offsetY + y + (nose.y - 0.5) * scale - 10, 15, 0, Math.PI * 2);
+                        ctx.arc(x + (nose.x - 0.5) * scale, offsetY + y + (nose.y - 0.5) * scale - 10, 14, 0, Math.PI * 2);
                         ctx.fill();
                     }
 
@@ -546,10 +546,11 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
-                // 바닥선
+                // ⭐ 중간 바닥선 (두 번째 줄) 및 맨 아래 장식용 선
                 ctx.strokeStyle = "#ffb7b2";
-                ctx.lineWidth = 4;
-                ctx.beginPath(); ctx.moveTo(0, 460); ctx.lineTo(950, 460); ctx.stroke();
+                ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(950, floorY); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 480); ctx.lineTo(950, 480); ctx.stroke();
 
                 if (!hasImage) {
                     ctx.fillStyle = "#ffb7b2";
@@ -593,7 +594,7 @@ with col_game:
                             }
 
                             let charCurrentY = charBaseY + jumpHeight;
-                            let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 50;
+                            let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 45;
                             let charLeft = charX - 14;
                             let charRight = charX + 14;
 
@@ -611,7 +612,7 @@ with col_game:
                         }
 
                         let charCurrentY = charBaseY + jumpHeight;
-                        let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 50;
+                        let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 45;
                         let charLeft = charX - 14;
                         let charRight = charX + 14;
 
@@ -643,7 +644,7 @@ with col_game:
                         ctx.textAlign = "center";
                         ctx.shadowColor = "#ffdf00";
                         ctx.shadowBlur = 10;
-                        ctx.fillText("🌟 BONUS x2 SCORE! 🌟", charX + 20, charBaseY + jumpHeight - 70);
+                        ctx.fillText("🌟 BONUS x2 SCORE! 🌟", charX + 20, charBaseY + jumpHeight - 60);
                         ctx.shadowBlur = 0;
                     }
 
