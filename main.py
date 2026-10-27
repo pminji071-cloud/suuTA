@@ -6,7 +6,7 @@ from PIL import Image
 import json
 
 # 1. 페이지 설정 (와이드 레이아웃 & 타이틀 설정)
-st.set_page_config(page_title="내 뼈다귀가 멈추지 않아! 🦴🎮", page_icon="👾", layout="wide")
+st.set_page_config(page_title="내 뼈다귀가 멈추지 않아! 🦴🎮", page_icon="🐾", layout="wide")
 
 # 세션 상태(Session State)에 업로드된 사진 기록 저장소 초기화
 if "saved_avatars" not in st.session_state:
@@ -15,43 +15,56 @@ if "saved_avatars" not in st.session_state:
 # MediaPipe Pose 모듈 준비
 mp_pose = mp.solutions.pose
 
-# 2. 레이아웃 분할 (왼쪽: 대화면 게임 / 오른쪽: 컨트롤 및 보관함 패널)
+# 2. 레이아웃 분할 (왼쪽: 대화면 게임 / 오른쪽: 귀여운 파스텔톤 패널)
 col_game, col_panel = st.columns([3.5, 1])
 
 landmarks_json = "null"
-
-# 임시 변수 정의
 uploaded_file = None
 
-with col_game:
-    st.markdown("### 🦴 내 뼈다귀가 멈추지 않아! (RUNNING BONES)")
-
 with col_panel:
-    st.markdown("### 📁 아바타 보관함 (Archive)")
+    st.markdown("""
+        <style>
+            .stButton>button {
+                border-radius: 20px;
+                background-color: #ffb7b2;
+                color: #fff;
+                font-weight: bold;
+                border: none;
+            }
+            .stButton>button:hover {
+                background-color: #ff9aa2;
+                color: #fff;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### 🐾 아바타 보관함")
     if len(st.session_state.saved_avatars) > 0:
-        st.caption(f"총 {len(st.session_state.saved_avatars)}개 저장됨")
+        st.caption(f"총 {len(st.session_state.saved_avatars)}개 보관 중!")
         for idx, avatar in enumerate(st.session_state.saved_avatars):
-            with st.expander(f"📌 #{idx+1} {avatar['name'][:10]}..."):
+            with st.expander(f"✨ #{idx+1} {avatar['name'][:10]}..."):
                 st.image(avatar['image'], use_container_width=True)
         
         if st.button("🗑️ 보관함 비우기"):
             st.session_state.saved_avatars = []
             st.rerun()
     else:
-        st.info("저장된 아바타 없음")
+        st.info("아직 저장된 아바타가 없어요!")
     
     st.write("---")
-    st.markdown("### 🎮 CONFIG")
-    uploaded_file = st.file_uploader("🖼️ 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
+    st.markdown("### 🎨 플레이어 설정")
+    uploaded_file = st.file_uploader("🖼️ 내 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
     
     skin_color = st.selectbox(
-        "⚡ 네온 관절 컬러", 
-        ["#00ff7f", "#ff1493", "#00eeff", "#ffd700"],
+        "✨ 네온 관절 컬러", 
+        ["#ff9aa2", "#ffb7b2", "#ffdac1", "#e2f0cb", "#b5ead7", "#c7ceea"],
         format_func=lambda x: {
-            "#00ff7f": "사이버 그린", 
-            "#ff1493": "네온 핑크", 
-            "#00eeff": "하이퍼 블루", 
-            "#ffd700": "아케이드 옐로우"
+            "#ff9aa2": "코랄 핑크", 
+            "#ffb7b2": "피치 블라섬", 
+            "#ffdac1": "버터 옐로우", 
+            "#e2f0cb": "민트 그린", 
+            "#b5ead7": "소다 블루", 
+            "#c7ceea": "라벤더 퍼플"
         }[x]
     )
 
@@ -83,10 +96,10 @@ with col_game:
     <head>
     <style>
         body { 
-            background-color: #0f172a; 
-            color: #e2e8f0; 
+            background-color: #1e1e2f; 
+            color: #f8fafc; 
             text-align: center; 
-            font-family: 'Courier New', Courier, monospace; 
+            font-family: 'Quicksand', 'Nunito', 'Courier New', sans-serif; 
             margin: 0; 
             padding: 0;
         }
@@ -97,17 +110,17 @@ with col_game:
             justify-content: center;
         }
         canvas { 
-            background: #0f172a; 
-            border: 2px solid #334155; 
-            border-radius: 12px; 
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+            background: #232336; 
+            border: 4px solid #ffb7b2; 
+            border-radius: 24px; 
+            box-shadow: 0 10px 30px rgba(255, 183, 178, 0.2);
             cursor: pointer;
         }
     </style>
     </head>
     <body>
         <div class="game-container">
-            <!-- 가로 1100, 세로 580으로 대폭 확장된 와이드 대화면 캔버스 -->
+            <!-- 둥글고 귀여운 테두리의 대화면 캔버스 (1100x580) -->
             <canvas id="gameCanvas" width="1100" height="580"></canvas>
         </div>
 
@@ -128,12 +141,12 @@ with col_game:
             let jumpHeight = 0;
             
             let obstacleX = 1150;
-            let obstacleWidth = 40;
+            let obstacleWidth = 45;
             let obstacleHeight = 55;
             let obstacleY = 475;
             let obstacleSpeed = 5;
             let obstacleShape = "crystal";
-            let obstacleColor = "#f43f5e";
+            let obstacleColor = "#ff9aa2";
             
             let score = 0;
             let isPaused = false;
@@ -143,7 +156,7 @@ with col_game:
             let countdownTimer = null;
 
             const caligoShapes = ["crystal", "spike", "core", "blade"];
-            const caligoColors = ["#f43f5e", "#ec4899", "#a855f7", "#38bdf8", "#fbbf24", "#34d399"];
+            const caligoColors = ["#ff9aa2", "#ffb7b2", "#ffdac1", "#e2f0cb", "#b5ead7", "#c7ceea"];
 
             function calculateSpeed() {
                 let base = 5.0 + Math.random() * 1.5;
@@ -163,8 +176,8 @@ with col_game:
             }
 
             function resetObstacle() {
-                obstacleWidth = Math.floor(30 + Math.random() * 35);
-                obstacleHeight = Math.floor(35 + Math.random() * 45);
+                obstacleWidth = Math.floor(35 + Math.random() * 30);
+                obstacleHeight = Math.floor(35 + Math.random() * 40);
                 
                 obstacleSpeed = calculateSpeed();
 
@@ -291,9 +304,10 @@ with col_game:
             function drawPoseCharacter(x, y, landmarks, crouching) {
                 ctx.strokeStyle = "SKIN_COLOR_PLACEHOLDER";
                 ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 4;
+                ctx.lineCap = "round";
                 ctx.shadowColor = "SKIN_COLOR_PLACEHOLDER";
-                ctx.shadowBlur = 6;
+                ctx.shadowBlur = 8;
 
                 let scale = crouching ? 75 : 130;
                 let offsetY = crouching ? 40 : 0;
@@ -315,14 +329,14 @@ with col_game:
                     const nose = landmarks[0];
                     if (nose) {
                         ctx.beginPath();
-                        ctx.arc(x + (nose.x - 0.5) * scale, offsetY + y + (nose.y - 0.5) * scale - 10, 15, 0, Math.PI * 2);
+                        ctx.arc(x + (nose.x - 0.5) * scale, offsetY + y + (nose.y - 0.5) * scale - 10, 16, 0, Math.PI * 2);
                         ctx.fill();
                     }
 
                     landmarks.forEach(function(lm, idx) {
                         if ([11,12,13,14,15,16,23,24,25,26,27,28].indexOf(idx) !== -1 && lm.visibility > 0.3) {
                             ctx.beginPath();
-                            ctx.arc(x + (lm.x - 0.5) * scale, offsetY + y + (lm.y - 0.5) * scale, 4, 0, Math.PI * 2);
+                            ctx.arc(x + (lm.x - 0.5) * scale, offsetY + y + (lm.y - 0.5) * scale, 5, 0, Math.PI * 2);
                             ctx.fillStyle = "#ffffff";
                             ctx.fill();
                             ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
@@ -330,8 +344,8 @@ with col_game:
                     });
                 } else {
                     let cy = crouching ? y + 15 : y;
-                    ctx.beginPath(); ctx.arc(x, cy - 30, 12, 0, Math.PI * 2); ctx.fill();
-                    ctx.beginPath(); ctx.moveTo(x, cy - 18); ctx.lineTo(x, cy + 15); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(x, cy - 30, 14, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(x, cy - 16); ctx.lineTo(x, cy + 15); ctx.stroke();
                     ctx.beginPath(); ctx.moveTo(x - 15, cy - 8); ctx.lineTo(x + 15, cy - 8); ctx.stroke();
                 }
                 ctx.shadowBlur = 0;
@@ -339,8 +353,8 @@ with col_game:
 
             function drawObstacle() {
                 ctx.fillStyle = obstacleColor;
-                ctx.shadowColor = "#ffffff";
-                ctx.shadowBlur = 12;
+                ctx.shadowColor = "#ffdac1";
+                ctx.shadowBlur = 10;
 
                 if (obstacleShape === "crystal") {
                     ctx.beginPath();
@@ -385,45 +399,37 @@ with col_game:
 
                 ctx.strokeStyle = "#ffffff";
                 ctx.lineWidth = 2;
-                if (obstacleShape === "crystal") {
-                    ctx.beginPath();
-                    ctx.moveTo(obstacleX + obstacleWidth / 2, obstacleY);
-                    ctx.lineTo(obstacleX + obstacleWidth, obstacleY + obstacleHeight * 0.4);
-                    ctx.lineTo(obstacleX + obstacleWidth / 2, obstacleY + obstacleHeight);
-                    ctx.lineTo(obstacleX, obstacleY + obstacleHeight * 0.4);
-                    ctx.closePath();
-                    ctx.stroke();
-                }
+                ctx.stroke();
                 ctx.shadowBlur = 0;
             }
 
             function drawGorgeousBackground(themeLevel) {
                 if (themeLevel === 0) {
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 580);
-                    bgGrad.addColorStop(0, "#090d16");
-                    bgGrad.addColorStop(0.5, "#1e1b4b");
-                    bgGrad.addColorStop(1, "#172554");
+                    bgGrad.addColorStop(0, "#1e1e2f");
+                    bgGrad.addColorStop(0.5, "#2a2a40");
+                    bgGrad.addColorStop(1, "#3b3b58");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "rgba(226, 232, 240, 0.4)";
+                    ctx.fillStyle = "rgba(255, 222, 215, 0.5)";
                     let stars = [ [70,50], [180,100], [330,40], [450,130], [560,70], [680,150], [820,55], [100,210], [400,260], [650,220], [900,90], [1000,180] ];
-                    stars.forEach(s => { ctx.fillRect(s[0], s[1], 2, 2); });
+                    stars.forEach(s => { ctx.fillRect(s[0], s[1], 3, 3); });
                 } else if (themeLevel === 1) {
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 580);
-                    bgGrad.addColorStop(0, "#25316d");
-                    bgGrad.addColorStop(0.5, "#57417e");
+                    bgGrad.addColorStop(0, "#4a3b5c");
+                    bgGrad.addColorStop(0.5, "#6b4c7a");
                     bgGrad.addColorStop(1, "#b57186");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "rgba(15, 23, 42, 0.3)";
+                    ctx.fillStyle = "rgba(42, 42, 64, 0.4)";
                     ctx.fillRect(0, 380, 1100, 200);
                 } else if (themeLevel === 2) {
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 580);
-                    bgGrad.addColorStop(0, "#1d4ed8");
-                    bgGrad.addColorStop(0.5, "#f59e0b");
-                    bgGrad.addColorStop(1, "#b45309");
+                    bgGrad.addColorStop(0, "#3a6073");
+                    bgGrad.addColorStop(0.5, "#ffb7b2");
+                    bgGrad.addColorStop(1, "#ffdac1");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -440,34 +446,34 @@ with col_game:
                     ctx.fill();
                 } else if (themeLevel === 3) {
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 580);
-                    bgGrad.addColorStop(0, "#0369a1");
-                    bgGrad.addColorStop(1, "#0c4a6e");
+                    bgGrad.addColorStop(0, "#2b5876");
+                    bgGrad.addColorStop(1, "#4e4376");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
                     ctx.beginPath(); ctx.arc(250, 360, 160, Math.PI, 0, false); ctx.fill();
                     ctx.beginPath(); ctx.arc(850, 400, 200, Math.PI, 0, false); ctx.fill();
                 } else if (themeLevel === 4) {
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 580);
-                    bgGrad.addColorStop(0, "#18181b");
-                    bgGrad.addColorStop(1, "#3f3f46");
+                    bgGrad.addColorStop(0, "#232526");
+                    bgGrad.addColorStop(1, "#414345");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "#52525b";
+                    ctx.fillStyle = "#888899";
                     ctx.beginPath(); ctx.arc(900, 140, 70, 0, Math.PI * 2); ctx.fill();
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
                     ctx.lineWidth = 6;
                     ctx.beginPath(); ctx.ellipse(900, 140, 115, 30, 0.3, 0, Math.PI * 2); ctx.stroke();
                 } else {
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 580);
-                    bgGrad.addColorStop(0, "#020617");
-                    bgGrad.addColorStop(1, "#0f172a");
+                    bgGrad.addColorStop(0, "#1f1c2c");
+                    bgGrad.addColorStop(1, "#928dab");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "#1e293b";
+                    ctx.fillStyle = "#2a2640";
                     ctx.fillRect(80, 300, 120, 280);
                     ctx.fillRect(850, 240, 140, 340);
                 }
@@ -479,17 +485,17 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
-                ctx.strokeStyle = "#475569";
+                ctx.strokeStyle = "#ffb7b2";
                 ctx.lineWidth = 4;
                 ctx.beginPath(); ctx.moveTo(0, 530); ctx.lineTo(1100, 530); ctx.stroke();
 
                 if (!hasImage) {
-                    ctx.fillStyle = "#f43f5e";
-                    ctx.font = "bold 22px 'Courier New'";
+                    ctx.fillStyle = "#ffb7b2";
+                    ctx.font = "bold 22px 'Quicksand', sans-serif";
                     ctx.textAlign = "center";
-                    ctx.fillText("⚠️ 오른쪽 패널에서 인물 사진을 업로드해 주세요!", canvas.width / 2, canvas.height / 2 - 15);
-                    ctx.fillStyle = "#38bdf8";
-                    ctx.font = "15px 'Courier New'";
+                    ctx.fillText("🐾 오른쪽 패널에서 내 사진을 업로드해 주세요!", canvas.width / 2, canvas.height / 2 - 15);
+                    ctx.fillStyle = "#b5ead7";
+                    ctx.font = "15px 'Quicksand', sans-serif";
                     ctx.fillText("Upload a photo to start RUNNING BONES!", canvas.width / 2, canvas.height / 2 + 25);
                 } else {
                     if (!isPaused && !isCountdown && !isGameOver) {
@@ -535,70 +541,70 @@ with col_game:
                     let renderY = charBaseY + jumpHeight;
                     drawPoseCharacter(charX, renderY, poseLandmarks, isCrouching);
 
-                    const themeNames = ["🌌 성운 우주", "🌊 노을빛 호수", "☁️ 하늘 위 구름", "🌊 심해 오션", "🪐 외계 행성", "🏰 다크 요새"];
-                    ctx.fillStyle = "#e2e8f0";
-                    ctx.font = "bold 14px 'Courier New'";
+                    const themeNames = ["✨ 포근한 밤", "🌸 몽환 숲", "☁️ 노을 바다", "🌊 오션 파스텔", "🪐 별빛 행성", "🏰 판타지 성"];
+                    ctx.fillStyle = "#f8fafc";
+                    ctx.font = "bold 15px 'Quicksand', sans-serif";
                     ctx.textAlign = "left";
-                    ctx.fillText("SCORE: " + score + " [" + themeNames[themeLevel] + "]", 25, 40);
+                    ctx.fillText("⭐ SCORE: " + score + " [" + themeNames[themeLevel] + "]", 25, 40);
 
-                    ctx.fillStyle = "#94a3b8";
-                    ctx.font = "12px 'Courier New'";
-                    ctx.fillText("⌨️ Space(x2):2단점프 | Ctrl:숙이기 | ESC:일시정지", 450, 40);
+                    ctx.fillStyle = "#b5ead7";
+                    ctx.font = "13px 'Quicksand', sans-serif";
+                    ctx.fillText("⌨️ Space(x2): 2단점프 | Ctrl: 숙이기 | ESC: 일시정지", 430, 40);
 
                     if (isGameOver) {
-                        ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+                        ctx.fillStyle = "rgba(30, 30, 47, 0.92)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                        ctx.fillStyle = "#f43f5e";
-                        ctx.font = "bold 40px 'Courier New'";
+                        ctx.fillStyle = "#ffb7b2";
+                        ctx.font = "bold 40px 'Quicksand', sans-serif";
                         ctx.textAlign = "center";
-                        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
+                        ctx.fillText("GAME OVER 🐾", canvas.width / 2, canvas.height / 2 - 30);
 
-                        ctx.fillStyle = "#38bdf8";
-                        ctx.font = "20px 'Courier New'";
+                        ctx.fillStyle = "#b5ead7";
+                        ctx.font = "20px 'Quicksand', sans-serif";
                         ctx.fillText("Final Score: " + score, canvas.width / 2, canvas.height / 2 + 15);
 
-                        ctx.fillStyle = "#94a3b8";
-                        ctx.font = "16px 'Courier New'";
-                        ctx.fillText("Click or Space to restart", canvas.width / 2, canvas.height / 2 + 70);
+                        ctx.fillStyle = "#f8fafc";
+                        ctx.font = "16px 'Quicksand', sans-serif";
+                        ctx.fillText("클릭 또는 스페이스바로 다시 시작!", canvas.width / 2, canvas.height / 2 + 70);
                     }
 
                     if (isPaused) {
-                        ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+                        ctx.fillStyle = "rgba(30, 30, 47, 0.9)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                        ctx.fillStyle = "#f43f5e";
-                        ctx.font = "bold 34px 'Courier New'";
+                        ctx.fillStyle = "#ffb7b2";
+                        ctx.font = "bold 34px 'Quicksand', sans-serif";
                         ctx.textAlign = "center";
-                        ctx.fillText("GAME PAUSED", canvas.width / 2, 170);
+                        ctx.fillText("GAME PAUSED ⏸️", canvas.width / 2, 170);
 
-                        ctx.fillStyle = "#0284c7";
-                        ctx.fillRect(450, 280, 200, 40);
-                        ctx.fillStyle = "#ffffff";
-                        ctx.font = "bold 16px 'Courier New'";
-                        ctx.fillText("▶ 이어서 재생", canvas.width / 2, 305);
+                        ctx.fillStyle = "#b5ead7";
+                        ctx.fillRect(450, 280, 200, 45);
+                        ctx.fillStyle = "#1e1e2f";
+                        ctx.font = "bold 16px 'Quicksand', sans-serif";
+                        ctx.fillText("▶ 이어서 하기", canvas.width / 2, 308);
 
-                        ctx.fillStyle = "#475569";
-                        ctx.fillRect(450, 340, 200, 40);
-                        ctx.fillStyle = "#ffffff";
-                        ctx.fillText("🔄 처음으로", canvas.width / 2, 365);
+                        ctx.fillStyle = "#ffdac1";
+                        ctx.fillRect(450, 345, 200, 45);
+                        ctx.fillStyle = "#1e1e2f";
+                        ctx.fillText("🔄 처음으로", canvas.width / 2, 373);
                     }
 
                     if (isCountdown) {
-                        ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+                        ctx.fillStyle = "rgba(30, 30, 47, 0.9)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                        ctx.fillStyle = "#38bdf8";
-                        ctx.font = "bold 80px 'Courier New'";
+                        ctx.fillStyle = "#ffdac1";
+                        ctx.font = "bold 80px 'Quicksand', sans-serif";
                         ctx.textAlign = "center";
-                        ctx.shadowColor = "#38bdf8";
+                        ctx.shadowColor = "#ffdac1";
                         ctx.shadowBlur = 15;
                         ctx.fillText(countdownValue, canvas.width / 2, canvas.height / 2 + 25);
                         ctx.shadowBlur = 0;
 
-                        ctx.fillStyle = "#94a3b8";
-                        ctx.font = "20px 'Courier New'";
-                        ctx.fillText("GET READY...", canvas.width / 2, canvas.height / 2 - 70);
+                        ctx.fillStyle = "#b5ead7";
+                        ctx.font = "20px 'Quicksand', sans-serif";
+                        ctx.fillText("준비하세요!", canvas.width / 2, canvas.height / 2 - 70);
                     }
                 }
 
