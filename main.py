@@ -129,9 +129,28 @@ with col_game:
             let jumpHeight = 0;
             let obstacleX = 700;
             let score = 0;
+            
             let isPaused = false;
+            let isCountdown = false;
+            let countdownValue = 3;
+            let countdownTimer = null;
 
-            // 마우스 클릭 이벤트 (게임 중 점프 또는 일시 정지 메뉴 버튼 클릭 처리)
+            function startCountdown() {
+                isPaused = false;
+                isCountdown = true;
+                countdownValue = 3;
+
+                if (countdownTimer) clearInterval(countdownTimer);
+
+                countdownTimer = setInterval(function() {
+                    countdownValue--;
+                    if (countdownValue <= 0) {
+                        clearInterval(countdownTimer);
+                        isCountdown = false;
+                    }
+                }, 1000);
+            }
+
             canvas.addEventListener("click", function(e) {
                 if (!hasImage) return;
 
@@ -140,31 +159,38 @@ with col_game:
                 const mouseY = e.clientY - rect.top;
 
                 if (isPaused) {
-                    // 1. "이어서 재생" 버튼 클릭 영역 검사 (캔버스 중앙 기준)
+                    // "이어서 재생" 클릭 시 3초 카운트다운 시작
                     if (mouseX >= 225 && mouseX <= 425 && mouseY >= 210 && mouseY <= 250) {
-                        isPaused = false;
+                        startCountdown();
                     }
-                    // 2. "처음으로 돌아가기" 버튼 클릭 영역 검사
+                    // "처음으로" 클릭
                     else if (mouseX >= 225 && mouseX <= 425 && mouseY >= 270 && mouseY <= 310) {
                         score = 0;
                         obstacleX = 700;
                         jumpHeight = 0;
                         isJumping = false;
                         isPaused = false;
+                        isCountdown = false;
+                        if (countdownTimer) clearInterval(countdownTimer);
                     }
                     return;
                 }
 
-                if (!isJumping) {
+                if (!isJumping && !isCountdown) {
                     isJumping = true;
                     jumpVelocity = -14;
                 }
             });
 
-            // ESC 키 입력 시 일시 정지 토글
             window.addEventListener("keydown", function(e) {
                 if (e.key === "Escape" && hasImage) {
-                    isPaused = !isPaused;
+                    if (isPaused) {
+                        startCountdown();
+                    } else {
+                        isPaused = true;
+                        if (countdownTimer) clearInterval(countdownTimer);
+                        isCountdown = false;
+                    }
                 }
             });
 
@@ -244,7 +270,8 @@ with col_game:
                     ctx.font = "14px 'Courier New'";
                     ctx.fillText("Upload a photo on the right panel to start game!", canvas.width / 2, canvas.height / 2 + 20);
                 } else {
-                    if (!isPaused) {
+                    // 일시정지나 카운트다운 중이 아닐 때만 게임 요소 업데이트
+                    if (!isPaused && !isCountdown) {
                         if (isJumping) {
                             jumpHeight += jumpVelocity;
                             jumpVelocity += 0.8;
@@ -279,7 +306,7 @@ with col_game:
                     ctx.font = "14px 'Courier New'";
                     ctx.fillText("🖱️ Click to Jump | [ESC] Pause", 300, 40);
 
-                    // 일시 정지 메뉴 오버레이
+                    // 1. 일시 정지 메뉴 오버레이
                     if (isPaused) {
                         ctx.fillStyle = "rgba(15, 52, 96, 0.85)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -289,18 +316,34 @@ with col_game:
                         ctx.textAlign = "center";
                         ctx.fillText("GAME PAUSED", canvas.width / 2, 120);
 
-                        // 버튼 1: 이어서 재생
                         ctx.fillStyle = "#00fff5";
                         ctx.fillRect(225, 210, 200, 40);
                         ctx.fillStyle = "#0f3460";
                         ctx.font = "bold 15px 'Courier New'";
                         ctx.fillText("▶ 이어서 재생", canvas.width / 2, 235);
 
-                        // 버튼 2: 처음으로 돌아가기
                         ctx.fillStyle = "#ffdd59";
                         ctx.fillRect(225, 270, 200, 40);
                         ctx.fillStyle = "#0f3460";
                         ctx.fillText("🔄 처음으로", canvas.width / 2, 295);
+                    }
+
+                    // 2. 3초 카운트다운 오버레이
+                    if (isCountdown) {
+                        ctx.fillStyle = "rgba(15, 52, 96, 0.85)";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                        ctx.fillStyle = "#00fff5";
+                        ctx.font = "bold 60px 'Courier New'";
+                        ctx.textAlign = "center";
+                        ctx.shadowColor = "#00fff5";
+                        ctx.shadowBlur = 20;
+                        ctx.fillText(countdownValue, canvas.width / 2, canvas.height / 2 + 15);
+                        ctx.shadowBlur = 0;
+
+                        ctx.fillStyle = "#ffffff";
+                        ctx.font = "16px 'Courier New'";
+                        ctx.fillText("GET READY...", canvas.width / 2, canvas.height / 2 - 50);
                     }
                 }
 
