@@ -5,8 +5,8 @@ import numpy as np
 from PIL import Image
 import json
 
-# 1. 페이지 설정 (와이드 레이아웃)
-st.set_page_config(page_title="Virtual Avatar Motion Quest 🎮", page_icon="👾", layout="wide")
+# 1. 페이지 설정 (와이드 레이아웃 & 타이틀 설정)
+st.set_page_config(page_title="내 뼈다귀가 멈추지 않아! 🦴🎮", page_icon="👾", layout="wide")
 
 # 세션 상태(Session State)에 업로드된 사진 기록 저장소 초기화
 if "saved_avatars" not in st.session_state:
@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 캐릭터를 생성합니다! **눈이 편안한 딥 다크 배경**에서 Space 2단점프와 Ctrl 숙이기로 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **Space(2단 점프)**와 **Ctrl(숙이기)** 조작으로 날아오는 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -79,7 +79,7 @@ with col_panel:
         st.info("아직 저장된 캐릭터 사진이 없습니다. 사진을 업로드해 보세요!")
 
 with col_game:
-    st.markdown("### 🕹️ VIRTUAL IDOL ARCADE STAGE")
+    st.markdown("### 🦴 내 뼈다귀가 멈추지 않아! (RUNNING BONES)")
     
     has_image = "true" if uploaded_file is not None else "false"
     
@@ -147,7 +147,6 @@ with col_game:
             let countdownValue = 3;
             let countdownTimer = null;
 
-            // 눈이 편안한 톤다운 악당 칼리고 컬러 팔레트
             const caligoShapes = ["crystal", "spike", "core", "blade"];
             const caligoColors = ["#6b21a8", "#581c87", "#9f1239", "#1e1b4b", "#312e81", "#881337"];
 
@@ -373,10 +372,8 @@ with col_game:
                 ctx.shadowBlur = 0;
             }
 
-            // 채도 및 눈부심을 줄인 차분하고 딥한 톤다운 배경 렌더링
             function drawGorgeousBackground(themeLevel) {
                 if (themeLevel === 0) {
-                    // 🌌 0~999점: 딥 다크 우주
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#090d16");
                     bgGrad.addColorStop(0.5, "#1e1b4b");
@@ -388,7 +385,6 @@ with col_game:
                     let stars = [ [50,40], [120,90], [230,30], [340,110], [420,60], [510,130], [600,45], [80,180], [290,220], [480,190] ];
                     stars.forEach(s => { ctx.fillRect(s[0], s[1], 1.5, 1.5); });
                 } else if (themeLevel === 1) {
-                    // ⛰️ 1,000~1,999점: 차분한 밤 산맥
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#0f172a");
                     bgGrad.addColorStop(1, "#1e293b");
@@ -402,7 +398,6 @@ with col_game:
                     ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(180, 240); ctx.lineTo(400, 360); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(350, 360); ctx.lineTo(520, 210); ctx.lineTo(650, 360); ctx.fill();
                 } else if (themeLevel === 2) {
-                    // 🌊 2,000~2,999점: 차분한 밤 바다
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#0c4a6e");
                     bgGrad.addColorStop(1, "#075985");
@@ -413,7 +408,6 @@ with col_game:
                     ctx.beginPath(); ctx.arc(150, 250, 120, Math.PI, 0, false); ctx.fill();
                     ctx.beginPath(); ctx.arc(480, 290, 160, Math.PI, 0, false); ctx.fill();
                 } else if (themeLevel === 3) {
-                    // ☁️ 3,000~3,999점: 톤다운된 노을 하늘
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#451a03");
                     bgGrad.addColorStop(0.6, "#78350f");
@@ -433,7 +427,6 @@ with col_game:
                     ctx.arc(510, 165, 60, 0, Math.PI * 2);
                     ctx.fill();
                 } else if (themeLevel === 4) {
-                    // 🪐 4,000~4,999점: 딥 외계 행성
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#18181b");
                     bgGrad.addColorStop(1, "#27272a");
@@ -446,7 +439,6 @@ with col_game:
                     ctx.lineWidth = 4;
                     ctx.beginPath(); ctx.ellipse(500, 110, 105, 30, 0.4, 0, Math.PI * 2); ctx.stroke();
                 } else {
-                    // 🏰 5,000점 이상: 딥 판타지 요새
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#020617");
                     bgGrad.addColorStop(1, "#0f172a");
@@ -471,7 +463,6 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
-                // 은은한 바닥선
                 ctx.strokeStyle = "#475569";
                 ctx.lineWidth = 4;
                 ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(650, 360); ctx.stroke();
