@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭 또는 스페이스 바**로 점프하며 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **Space/클릭**으로 점프하고, **Ctrl 키**로 숙여서 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -126,6 +126,7 @@ with col_game:
             let charBaseY = 320;
             let charX = 120;
             let isJumping = false;
+            let isCrouching = false; // 숙이기(앉기) 상태 변수
             let jumpVelocity = 0;
             let jumpHeight = 0;
             
@@ -152,11 +153,11 @@ with col_game:
                 obstacleHeight = Math.floor(25 + Math.random() * 45);
                 obstacleSpeed = 5 + Math.random() * 6;
 
-                const isAir = Math.random() < 0.3;
+                const isAir = Math.random() < 0.35; // 35% 확률로 공중 장애물 등장 (숙여서 피하기 용도)
                 if (isAir) {
-                    obstacleY = 220 + Math.random() * 60;
+                    obstacleY = 230 + Math.random() * 40; // 공중 높이
                 } else {
-                    obstacleY = 360 - obstacleHeight;
+                    obstacleY = 360 - obstacleHeight; // 지상
                 }
 
                 obstacleX = 650 + Math.random() * 350;
@@ -181,14 +182,13 @@ with col_game:
             }
 
             function triggerJump() {
-                if (!hasImage || isPaused || isCountdown || isGameOver) return;
+                if (!hasImage || isPaused || isCountdown || isGameOver || isCrouching) return;
                 if (!isJumping) {
                     isJumping = true;
                     jumpVelocity = -14;
                 }
             }
 
-            // 마우스 클릭 이벤트 (점프 또는 일시정지 메뉴 선택)
             canvas.addEventListener("click", function(e) {
                 if (!hasImage) return;
 
@@ -202,6 +202,7 @@ with col_game:
                     resetObstacle();
                     jumpHeight = 0;
                     isJumping = false;
+                    isCrouching = false;
                     return;
                 }
 
@@ -214,6 +215,7 @@ with col_game:
                         resetObstacle();
                         jumpHeight = 0;
                         isJumping = false;
+                        isCrouching = false;
                         isPaused = false;
                         isCountdown = false;
                         if (countdownTimer) clearInterval(countdownTimer);
@@ -224,21 +226,29 @@ with col_game:
                 triggerJump();
             });
 
-            // 키보드 입력 이벤트 (스페이스 바 점프 및 ESC 일시정지)
+            // 키보드 누를 때 (Space 점프, Ctrl 숙이기, ESC 일시정지)
             window.addEventListener("keydown", function(e) {
                 if (!hasImage) return;
 
                 if (e.code === "Space") {
-                    e.preventDefault(); // 스페이스 바 누를 시 화면 스크롤 방지
+                    e.preventDefault();
                     if (isGameOver) {
                         isGameOver = false;
                         score = 0;
                         resetObstacle();
                         jumpHeight = 0;
                         isJumping = false;
+                        isCrouching = false;
                         return;
                     }
                     triggerJump();
+                }
+
+                if (e.code === "ControlLeft" || e.code === "ControlRight") {
+                    e.preventDefault();
+                    if (!isJumping && !isPaused && !isCountdown && !isGameOver) {
+                        isCrouching = true;
+                    }
                 }
 
                 if (e.key === "Escape" && !isGameOver) {
@@ -252,21 +262,30 @@ with col_game:
                 }
             });
 
+            // 키보드 뗄 때 (Ctrl 숙이기 해제)
+            window.addEventListener("keyup", function(e) {
+                if (e.code === "ControlLeft" || e.code === "ControlRight") {
+                    isCrouching = false;
+                }
+            });
+
             const POSE_CONNECTIONS = [
                 [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
                 [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28]
             ];
 
-            function drawPoseCharacter(x, y, landmarks) {
+            function drawPoseCharacter(x, y, landmarks, crouching) {
                 ctx.strokeStyle = "SKIN_COLOR_PLACEHOLDER";
                 ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
                 ctx.lineWidth = 3;
                 ctx.shadowColor = "SKIN_COLOR_PLACEHOLDER";
                 ctx.shadowBlur = 10;
 
+                // 숙이고 있을 때 캐릭터 높이를 압축해서 렌더링
+                let scale = crouching ? 65 : 110;
+                let offsetY = crouching ? 35 : 0;
+
                 if (landmarks && landmarks.length > 0) {
-                    const scale = 110;
-                    
                     POSE_CONNECTIONS.forEach(function(pair) {
                         const i = pair[0];
                         const j = pair[1];
@@ -274,8 +293,8 @@ with col_game:
                         const pt2 = landmarks[j];
                         if (pt1 && pt2 && pt1.visibility > 0.3 && pt2.visibility > 0.3) {
                             ctx.beginPath();
-                            ctx.moveTo(x + (pt1.x - 0.5) * scale, y + (pt1.y - 0.5) * scale);
-                            ctx.lineTo(x + (pt2.x - 0.5) * scale, y + (pt2.y - 0.5) * scale);
+                            ctx.moveTo(x + (pt1.x - 0.5) * scale, offsetY + y + (pt1.y - 0.5) * scale);
+                            ctx.lineTo(x + (pt2.x - 0.5) * scale, offsetY + y + (pt2.y - 0.5) * scale);
                             ctx.stroke();
                         }
                     });
@@ -283,25 +302,24 @@ with col_game:
                     const nose = landmarks[0];
                     if (nose) {
                         ctx.beginPath();
-                        ctx.arc(x + (nose.x - 0.5) * scale, y + (nose.y - 0.5) * scale - 10, 14, 0, Math.PI * 2);
+                        ctx.arc(x + (nose.x - 0.5) * scale, offsetY + y + (nose.y - 0.5) * scale - 10, 14, 0, Math.PI * 2);
                         ctx.fill();
                     }
 
                     landmarks.forEach(function(lm, idx) {
                         if ([11,12,13,14,15,16,23,24,25,26,27,28].indexOf(idx) !== -1 && lm.visibility > 0.3) {
                             ctx.beginPath();
-                            ctx.arc(x + (lm.x - 0.5) * scale, y + (lm.y - 0.5) * scale, 4, 0, Math.PI * 2);
+                            ctx.arc(x + (lm.x - 0.5) * scale, offsetY + y + (lm.y - 0.5) * scale, 4, 0, Math.PI * 2);
                             ctx.fillStyle = "#ffffff";
                             ctx.fill();
                             ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
                         }
                     });
                 } else {
-                    ctx.beginPath(); ctx.arc(x, y - 30, 12, 0, Math.PI * 2); ctx.fill();
-                    ctx.beginPath(); ctx.moveTo(x, y - 18); ctx.lineTo(x, y + 15); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(x - 15, y - 8); ctx.lineTo(x + 15, y - 8); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(x, y + 15); ctx.lineTo(x - 12, y + 35); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(x, y + 15); ctx.lineTo(x + 12, y + 35); ctx.stroke();
+                    let cy = crouching ? y + 15 : y;
+                    ctx.beginPath(); ctx.arc(x, cy - 30, 12, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(x, cy - 18); ctx.lineTo(x, cy + 15); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(x - 15, cy - 8); ctx.lineTo(x + 15, cy - 8); ctx.stroke();
                 }
                 ctx.shadowBlur = 0;
             }
@@ -379,8 +397,9 @@ with col_game:
                             score += 100;
                         }
 
+                        // 충돌 판정 (숙이기 상태일 때는 상단 피격 박스가 낮아짐)
                         let charCurrentY = charBaseY + jumpHeight;
-                        let charHeadY = charCurrentY - 45;
+                        let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 45;
                         
                         if (
                             obstacleX < charX + 15 &&
@@ -395,16 +414,16 @@ with col_game:
                     drawObstacle();
 
                     let renderY = charBaseY + jumpHeight;
-                    drawPoseCharacter(charX, renderY, poseLandmarks);
+                    drawPoseCharacter(charX, renderY, poseLandmarks, isCrouching);
 
                     ctx.fillStyle = "#00fff5";
-                    ctx.font = "bold 20px 'Courier New'";
+                    ctx.font = "bold 15px 'Courier New'";
                     ctx.textAlign = "left";
-                    ctx.fillText("SCORE: " + score, 30, 40);
+                    ctx.fillText("SCORE: " + score, 20, 35);
 
                     ctx.fillStyle = "#ffffff";
-                    ctx.font = "14px 'Courier New'";
-                    ctx.fillText("⌨️ Space/Click to Jump | [ESC] Pause", 240, 40);
+                    ctx.font = "12px 'Courier New'";
+                    ctx.fillText("⌨️ Space:Jump | Ctrl:Crouch | ESC:Pause", 220, 35);
 
                     if (isGameOver) {
                         ctx.fillStyle = "rgba(15, 52, 96, 0.9)";
