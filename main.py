@@ -165,6 +165,41 @@ with col_game:
             const canvas = document.getElementById("gameCanvas");
             const ctx = canvas.getContext("2d");
 
+            // ⭐ 웹 오디오 컨텍스트 설정 (뿅 효과음 재생용)
+            let audioCtx = null;
+
+            function initAudio() {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            function playPpyongSound() {
+                try {
+                    initAudio();
+                    if (!audioCtx) return;
+                    
+                    let osc = audioCtx.createOscillator();
+                    let gainNode = audioCtx.createGain();
+
+                    osc.type = 'sine';
+                    // 주파수가 낮았다가 높게 휙 올라가면서 "뿅!" 소리를 냄
+                    osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.15);
+
+                    gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+                    osc.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.15);
+                } catch(e) {
+                    console.log("Audio play error:", e);
+                }
+            }
+
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
@@ -197,7 +232,6 @@ with col_game:
             let countdownValue = 3;
             let countdownTimer = null;
 
-            // ⭐ 특정 점수 축하 모션 관련 변수
             let celebrationText = "";
             let celebrationTimer = 0;
             const targetMilestones = [1000, 2000, 5000, 7777, 10000];
@@ -273,6 +307,7 @@ with col_game:
             }
 
             canvas.addEventListener("click", function(e) {
+                initAudio(); // 클릭 시 오디오 활성화
                 if (!hasImage) return;
 
                 const rect = canvas.getBoundingClientRect();
@@ -314,6 +349,7 @@ with col_game:
             });
 
             window.addEventListener("keydown", function(e) {
+                initAudio(); // 키 입력 시 오디오 활성화
                 if (!hasImage) return;
 
                 if (e.code === "Space") {
@@ -604,12 +640,11 @@ with col_game:
                             score += 100;
                         }
 
-                        // ⭐ 특정 마일스톤 점수 도달 체크 및 축하 모션 발동
                         targetMilestones.forEach(m => {
                             if (score >= m && !achievedMilestones[m]) {
                                 achievedMilestones[m] = true;
                                 celebrationText = "🎉 " + m + "점 돌파! 대단해요! 🎉";
-                                celebrationTimer = 90; // 약 1.5초 동안 화려하게 표시
+                                celebrationTimer = 90;
                             }
                         });
 
@@ -633,6 +668,7 @@ with col_game:
                                 score += 100; 
                                 starActive = false;
                                 starEffectTimer = 30;
+                                playPpyongSound(); // ⭐ 별 먹을 때 뿅 사운드 재생!
                             }
                         }
 
@@ -673,11 +709,10 @@ with col_game:
                         ctx.shadowBlur = 0;
                     }
 
-                    // ⭐ 화려한 축하 모션 팝업 렌더링
                     if (celebrationTimer > 0) {
                         celebrationTimer--;
                         ctx.fillStyle = "rgba(255, 218, 193, 0.25)";
-                        ctx.fillRect(0, 0, canvas.width, canvas.height); // 화면 전체 은은한 오라
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                         ctx.fillStyle = "#ffdf00";
                         ctx.font = "bold 32px 'Quicksand', sans-serif";
