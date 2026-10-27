@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭하여 점프**하며 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭하여 점프**하며 랜덤 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -128,14 +128,28 @@ with col_game:
             let isJumping = false;
             let jumpVelocity = 0;
             let jumpHeight = 0;
-            let obstacleX = 700;
-            let score = 0;
             
+            // 랜덤 장애물 속성 변수들
+            let obstacleX = 700;
+            let obstacleWidth = 35;
+            let obstacleHeight = 50;
+            let obstacleY = 310;
+            let obstacleSpeed = 6;
+            
+            let score = 0;
             let isPaused = false;
             let isGameOver = false;
             let isCountdown = false;
             let countdownValue = 3;
             let countdownTimer = null;
+
+            // 장애물 속성 랜덤 리셋 함수
+            function resetObstacle() {
+                obstacleX = 700 + Math.random() * 250; // 등장 간격도 랜덤 (700~950px 사이)
+                obstacleWidth = 25 + Math.random() * 25; // 너비 25~50px 랜덤
+                obstacleHeight = 35 + Math.random() * 35; // 높이 35~70px 랜덤
+                obstacleY = 360 - obstacleHeight; // 바닥(360)에 맞춤
+            }
 
             function startCountdown() {
                 isPaused = false;
@@ -160,11 +174,10 @@ with col_game:
                 const mouseX = e.clientX - rect.left;
                 const mouseY = e.clientY - rect.top;
 
-                // 게임 오버 상태일 때 클릭하면 재시작
                 if (isGameOver) {
                     isGameOver = false;
                     score = 0;
-                    obstacleX = 700;
+                    resetObstacle();
                     jumpHeight = 0;
                     isJumping = false;
                     return;
@@ -176,7 +189,7 @@ with col_game:
                     }
                     else if (mouseX >= 225 && mouseX <= 425 && mouseY >= 270 && mouseY <= 310) {
                         score = 0;
-                        obstacleX = 700;
+                        resetObstacle();
                         jumpHeight = 0;
                         isJumping = false;
                         isPaused = false;
@@ -280,7 +293,6 @@ with col_game:
                     ctx.font = "14px 'Courier New'";
                     ctx.fillText("Upload a photo on the right panel to start game!", canvas.width / 2, canvas.height / 2 + 20);
                 } else {
-                    // 게임 플레이 업데이트 (정지, 카운트다운, 게임오버가 아닐 때만)
                     if (!isPaused && !isCountdown && !isGameOver) {
                         if (isJumping) {
                             jumpHeight += jumpVelocity;
@@ -291,26 +303,32 @@ with col_game:
                             }
                         }
 
-                        obstacleX -= 6;
-                        if (obstacleX < -40) {
-                            obstacleX = 700;
+                        // 장애물 이동
+                        obstacleX -= (6 + Math.floor(score / 500)); // 점수가 높을수록 속도 빨라짐
+                        if (obstacleX < -50) {
+                            resetObstacle();
                             score += 100;
                         }
 
-                        // 충돌 감지 (Collision Detection)
-                        // 캐릭터 X범위: 100 ~ 140, 장애물 X범위: obstacleX ~ obstacleX + 35
-                        // 캐릭터 Y범위: (charBaseY + jumpHeight - 40) ~ (charBaseY + jumpHeight), 장애물 Y범위: 310 ~ 360
+                        // 정밀 충돌 판정 (랜덤 크기 반영)
                         let charCurrentY = charBaseY + jumpHeight;
-                        if (obstacleX < 140 && obstacleX + 35 > 100 && charCurrentY >= 315) {
+                        let charTopY = charCurrentY - 45;
+                        let obstacleTopY = obstacleY;
+
+                        if (
+                            obstacleX < charX + 20 &&
+                            obstacleX + obstacleWidth > charX - 15 &&
+                            charCurrentY > obstacleTopY
+                        ) {
                             isGameOver = true;
                         }
                     }
 
-                    // 장애물
+                    // 무작위 크기의 네온 장애물 렌더링
                     ctx.fillStyle = "#ffdd59";
                     ctx.shadowColor = "#ffdd59";
                     ctx.shadowBlur = 10;
-                    ctx.fillRect(obstacleX, 310, 35, 50);
+                    ctx.fillRect(obstacleX, obstacleY, obstacleWidth, obstacleHeight);
                     ctx.shadowBlur = 0;
 
                     let renderY = charBaseY + jumpHeight;
@@ -325,7 +343,6 @@ with col_game:
                     ctx.font = "14px 'Courier New'";
                     ctx.fillText("🖱️ Click to Jump | [ESC] Pause", 300, 40);
 
-                    // 1. 게임 오버 오버레이
                     if (isGameOver) {
                         ctx.fillStyle = "rgba(15, 52, 96, 0.9)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -344,7 +361,6 @@ with col_game:
                         ctx.fillText("Click anywhere to restart", canvas.width / 2, canvas.height / 2 + 55);
                     }
 
-                    // 2. 일시 정지 메뉴 오버레이
                     if (isPaused) {
                         ctx.fillStyle = "rgba(15, 52, 96, 0.85)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -366,7 +382,6 @@ with col_game:
                         ctx.fillText("🔄 처음으로", canvas.width / 2, 295);
                     }
 
-                    // 3. 3초 카운트다운 오버레이
                     if (isCountdown) {
                         ctx.fillStyle = "rgba(15, 52, 96, 0.85)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
