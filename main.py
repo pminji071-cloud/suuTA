@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭하여 점프**하며, **ESC 키**를 눌러 일시 정지 메뉴를 열 수 있습니다.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭하여 점프**하며 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -124,6 +124,7 @@ with col_game:
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
             let charBaseY = 320;
+            let charX = 120;
             let isJumping = false;
             let jumpVelocity = 0;
             let jumpHeight = 0;
@@ -131,6 +132,7 @@ with col_game:
             let score = 0;
             
             let isPaused = false;
+            let isGameOver = false;
             let isCountdown = false;
             let countdownValue = 3;
             let countdownTimer = null;
@@ -158,12 +160,20 @@ with col_game:
                 const mouseX = e.clientX - rect.left;
                 const mouseY = e.clientY - rect.top;
 
+                // 게임 오버 상태일 때 클릭하면 재시작
+                if (isGameOver) {
+                    isGameOver = false;
+                    score = 0;
+                    obstacleX = 700;
+                    jumpHeight = 0;
+                    isJumping = false;
+                    return;
+                }
+
                 if (isPaused) {
-                    // "이어서 재생" 클릭 시 3초 카운트다운 시작
                     if (mouseX >= 225 && mouseX <= 425 && mouseY >= 210 && mouseY <= 250) {
                         startCountdown();
                     }
-                    // "처음으로" 클릭
                     else if (mouseX >= 225 && mouseX <= 425 && mouseY >= 270 && mouseY <= 310) {
                         score = 0;
                         obstacleX = 700;
@@ -183,7 +193,7 @@ with col_game:
             });
 
             window.addEventListener("keydown", function(e) {
-                if (e.key === "Escape" && hasImage) {
+                if (e.key === "Escape" && hasImage && !isGameOver) {
                     if (isPaused) {
                         startCountdown();
                     } else {
@@ -270,8 +280,8 @@ with col_game:
                     ctx.font = "14px 'Courier New'";
                     ctx.fillText("Upload a photo on the right panel to start game!", canvas.width / 2, canvas.height / 2 + 20);
                 } else {
-                    // 일시정지나 카운트다운 중이 아닐 때만 게임 요소 업데이트
-                    if (!isPaused && !isCountdown) {
+                    // 게임 플레이 업데이트 (정지, 카운트다운, 게임오버가 아닐 때만)
+                    if (!isPaused && !isCountdown && !isGameOver) {
                         if (isJumping) {
                             jumpHeight += jumpVelocity;
                             jumpVelocity += 0.8;
@@ -286,8 +296,17 @@ with col_game:
                             obstacleX = 700;
                             score += 100;
                         }
+
+                        // 충돌 감지 (Collision Detection)
+                        // 캐릭터 X범위: 100 ~ 140, 장애물 X범위: obstacleX ~ obstacleX + 35
+                        // 캐릭터 Y범위: (charBaseY + jumpHeight - 40) ~ (charBaseY + jumpHeight), 장애물 Y범위: 310 ~ 360
+                        let charCurrentY = charBaseY + jumpHeight;
+                        if (obstacleX < 140 && obstacleX + 35 > 100 && charCurrentY >= 315) {
+                            isGameOver = true;
+                        }
                     }
 
+                    // 장애물
                     ctx.fillStyle = "#ffdd59";
                     ctx.shadowColor = "#ffdd59";
                     ctx.shadowBlur = 10;
@@ -295,7 +314,7 @@ with col_game:
                     ctx.shadowBlur = 0;
 
                     let renderY = charBaseY + jumpHeight;
-                    drawPoseCharacter(120, renderY, poseLandmarks);
+                    drawPoseCharacter(charX, renderY, poseLandmarks);
 
                     ctx.fillStyle = "#00fff5";
                     ctx.font = "bold 20px 'Courier New'";
@@ -306,7 +325,26 @@ with col_game:
                     ctx.font = "14px 'Courier New'";
                     ctx.fillText("🖱️ Click to Jump | [ESC] Pause", 300, 40);
 
-                    // 1. 일시 정지 메뉴 오버레이
+                    // 1. 게임 오버 오버레이
+                    if (isGameOver) {
+                        ctx.fillStyle = "rgba(15, 52, 96, 0.9)";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                        ctx.fillStyle = "#ff007f";
+                        ctx.font = "bold 32px 'Courier New'";
+                        ctx.textAlign = "center";
+                        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20);
+
+                        ctx.fillStyle = "#00fff5";
+                        ctx.font = "16px 'Courier New'";
+                        ctx.fillText("Final Score: " + score, canvas.width / 2, canvas.height / 2 + 15);
+
+                        ctx.fillStyle = "#ffffff";
+                        ctx.font = "14px 'Courier New'";
+                        ctx.fillText("Click anywhere to restart", canvas.width / 2, canvas.height / 2 + 55);
+                    }
+
+                    // 2. 일시 정지 메뉴 오버레이
                     if (isPaused) {
                         ctx.fillStyle = "rgba(15, 52, 96, 0.85)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -328,7 +366,7 @@ with col_game:
                         ctx.fillText("🔄 처음으로", canvas.width / 2, 295);
                     }
 
-                    // 2. 3초 카운트다운 오버레이
+                    // 3. 3초 카운트다운 오버레이
                     if (isCountdown) {
                         ctx.fillStyle = "rgba(15, 52, 96, 0.85)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
