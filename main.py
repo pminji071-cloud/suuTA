@@ -15,19 +15,37 @@ if "saved_avatars" not in st.session_state:
 # MediaPipe Pose 모듈 준비
 mp_pose = mp.solutions.pose
 
-# 2. 레이아웃 분할 (왼쪽: 관절 캐릭터 게임 / 오른쪽: 컨트롤 패널)
-col_game, col_panel = st.columns([2.2, 1])
+# 2. 레이아웃 분할 (왼쪽: 대화면 게임 / 오른쪽: 컨트롤 및 보관함 패널)
+col_game, col_panel = st.columns([3, 1])
 
 landmarks_json = "null"
 
+# 임시 변수 정의
+uploaded_file = None
+
+with col_game:
+    st.markdown("### 🦴 내 뼈다귀가 멈추지 않아! (RUNNING BONES)")
+
 with col_panel:
-    st.markdown("### 🎮 PLAYER CONFIG")
-    st.write("---")
+    st.markdown("### 📁 아바타 보관함 (Archive)")
+    if len(st.session_state.saved_avatars) > 0:
+        st.caption(f"총 {len(st.session_state.saved_avatars)}개 저장됨")
+        for idx, avatar in enumerate(st.session_state.saved_avatars):
+            with st.expander(f"📌 #{idx+1} {avatar['name'][:10]}..."):
+                st.image(avatar['image'], use_container_width=True)
+        
+        if st.button("🗑️ 보관함 비우기"):
+            st.session_state.saved_avatars = []
+            st.rerun()
+    else:
+        st.info("저장된 아바타 없음")
     
-    uploaded_file = st.file_uploader("🖼️ 인물 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
+    st.write("---")
+    st.markdown("### 🎮 CONFIG")
+    uploaded_file = st.file_uploader("🖼️ 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
     
     skin_color = st.selectbox(
-        "⚡ 네온 관절 레이저 컬러", 
+        "⚡ 네온 관절 컬러", 
         ["#00ff7f", "#ff1493", "#00eeff", "#ffd700"],
         format_func=lambda x: {
             "#00ff7f": "사이버 그린", 
@@ -36,51 +54,27 @@ with col_panel:
             "#ffd700": "아케이드 옐로우"
         }[x]
     )
-    
-    st.write("---")
-    st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **보내주신 사진들의 감성을 담은 고화질 테마 배경**이 점수대별로 펼쳐집니다. Space 2단점프와 Ctrl 숙이기로 생존하세요!")
-    
-    if uploaded_file is not None:
-        image = Image.open(uploaded_file).convert("RGB")
-        
-        if uploaded_file.name not in [item["name"] for item in st.session_state.saved_avatars]:
-            st.session_state.saved_avatars.append({
-                "name": uploaded_file.name,
-                "image": image
-            })
-        
-        img_array = np.array(image)
-        with mp_pose.Pose(static_image_mode=True, model_complexity=1) as pose:
-            results = pose.process(img_array)
-            if results.pose_landmarks:
-                lm_list = []
-                for lm in results.pose_landmarks.landmark:
-                    lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
-                landmarks_json = json.dumps(lm_list)
-        
-        st.success("✨ 3D 관절 스캔 완료 & 아카이브 저장!")
-        st.image(image, use_container_width=True)
-    else:
-        st.warning("👈 먼저 인물 사진을 업로드해 주세요!")
 
-    st.write("---")
-    st.markdown("### 📁 나의 아바타 보관함 (Archive)")
-    if len(st.session_state.saved_avatars) > 0:
-        st.caption(f"총 {len(st.session_state.saved_avatars)}개의 아바타가 저장되어 있습니다.")
-        for idx, avatar in enumerate(st.session_state.saved_avatars):
-            with st.expander(f"📌 {avatar['name']} (#{idx+1})"):
-                st.image(avatar['image'], use_container_width=True)
-        
-        if st.button("🗑️ 보관함 비우기"):
-            st.session_state.saved_avatars = []
-            st.rerun()
-    else:
-        st.info("아직 저장된 캐릭터 사진이 없습니다. 사진을 업로드해 보세요!")
+# 사진 처리 및 관절 스캔
+if uploaded_file is not None:
+    image = Image.open(uploaded_file).convert("RGB")
+    
+    if uploaded_file.name not in [item["name"] for item in st.session_state.saved_avatars]:
+        st.session_state.saved_avatars.append({
+            "name": uploaded_file.name,
+            "image": image
+        })
+    
+    img_array = np.array(image)
+    with mp_pose.Pose(static_image_mode=True, model_complexity=1) as pose:
+        results = pose.process(img_array)
+        if results.pose_landmarks:
+            lm_list = []
+            for lm in results.pose_landmarks.landmark:
+                lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
+            landmarks_json = json.dumps(lm_list)
 
 with col_game:
-    st.markdown("### 🦴 내 뼈다귀가 멈추지 않아! (RUNNING BONES)")
-    
     has_image = "true" if uploaded_file is not None else "false"
     
     raw_html = """
@@ -106,14 +100,15 @@ with col_game:
             background: #0f172a; 
             border: 2px solid #334155; 
             border-radius: 12px; 
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
             cursor: pointer;
         }
     </style>
     </head>
     <body>
         <div class="game-container">
-            <canvas id="gameCanvas" width="650" height="400"></canvas>
+            <!-- 대화면으로 확대된 게임 캔버스 (900x480) -->
+            <canvas id="gameCanvas" width="900" height="480"></canvas>
         </div>
 
         <script>
@@ -123,8 +118,8 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            let charBaseY = 320;
-            let charX = 120;
+            let charBaseY = 400;
+            let charX = 150;
             
             let jumpCount = 0;
             const maxJumps = 2;
@@ -132,10 +127,10 @@ with col_game:
             let jumpVelocity = 0;
             let jumpHeight = 0;
             
-            let obstacleX = 700;
-            let obstacleWidth = 35;
-            let obstacleHeight = 45;
-            let obstacleY = 315;
+            let obstacleX = 950;
+            let obstacleWidth = 40;
+            let obstacleHeight = 55;
+            let obstacleY = 390;
             let obstacleSpeed = 5;
             let obstacleShape = "crystal";
             let obstacleColor = "#f43f5e";
@@ -151,7 +146,7 @@ with col_game:
             const caligoColors = ["#f43f5e", "#ec4899", "#a855f7", "#38bdf8", "#fbbf24", "#34d399"];
 
             function calculateSpeed() {
-                let base = 4.5 + Math.random() * 1.5;
+                let base = 5.0 + Math.random() * 1.5;
                 
                 if (score >= 2200) {
                     let extraTiers = Math.floor((score - 2200) / 400) + 1;
@@ -168,19 +163,19 @@ with col_game:
             }
 
             function resetObstacle() {
-                obstacleWidth = Math.floor(25 + Math.random() * 30);
-                obstacleHeight = Math.floor(30 + Math.random() * 40);
+                obstacleWidth = Math.floor(30 + Math.random() * 35);
+                obstacleHeight = Math.floor(35 + Math.random() * 45);
                 
                 obstacleSpeed = calculateSpeed();
 
                 const isAir = Math.random() < 0.35;
                 if (isAir) {
-                    obstacleY = 225 + Math.random() * 40;
+                    obstacleY = 280 + Math.random() * 50;
                 } else {
-                    obstacleY = 360 - obstacleHeight;
+                    obstacleY = 440 - obstacleHeight;
                 }
 
-                obstacleX = 650 + Math.random() * 350;
+                obstacleX = 900 + Math.random() * 400;
                 obstacleShape = caligoShapes[Math.floor(Math.random() * caligoShapes.length)];
                 obstacleColor = caligoColors[Math.floor(Math.random() * caligoColors.length)];
             }
@@ -206,7 +201,7 @@ with col_game:
                 
                 if (jumpCount < maxJumps) {
                     jumpCount++;
-                    jumpVelocity = -12;
+                    jumpVelocity = -13;
                 }
             }
 
@@ -228,10 +223,10 @@ with col_game:
                 }
 
                 if (isPaused) {
-                    if (mouseX >= 225 && mouseX <= 425 && mouseY >= 210 && mouseY <= 250) {
+                    if (mouseX >= 350 && mouseX <= 550 && mouseY >= 250 && mouseY <= 290) {
                         startCountdown();
                     }
-                    else if (mouseX >= 225 && mouseX <= 425 && mouseY >= 270 && mouseY <= 310) {
+                    else if (mouseX >= 350 && mouseX <= 550 && mouseY >= 310 && mouseY <= 350) {
                         score = 0;
                         resetObstacle();
                         jumpHeight = 0;
@@ -300,8 +295,8 @@ with col_game:
                 ctx.shadowColor = "SKIN_COLOR_PLACEHOLDER";
                 ctx.shadowBlur = 6;
 
-                let scale = crouching ? 65 : 110;
-                let offsetY = crouching ? 35 : 0;
+                let scale = crouching ? 75 : 130;
+                let offsetY = crouching ? 40 : 0;
 
                 if (landmarks && landmarks.length > 0) {
                     POSE_CONNECTIONS.forEach(function(pair) {
@@ -320,7 +315,7 @@ with col_game:
                     const nose = landmarks[0];
                     if (nose) {
                         ctx.beginPath();
-                        ctx.arc(x + (nose.x - 0.5) * scale, offsetY + y + (nose.y - 0.5) * scale - 10, 14, 0, Math.PI * 2);
+                        ctx.arc(x + (nose.x - 0.5) * scale, offsetY + y + (nose.y - 0.5) * scale - 10, 15, 0, Math.PI * 2);
                         ctx.fill();
                     }
 
@@ -402,114 +397,79 @@ with col_game:
                 ctx.shadowBlur = 0;
             }
 
-            // 보내주신 사진들의 감성을 그대로 재현한 고화질 실사풍 배경 렌더링 함수
             function drawGorgeousBackground(themeLevel) {
                 if (themeLevel === 0) {
-                    // [테마 0: 우주 성운] 보내주신 파란색/보라색 찬란한 성운과 별무리 사진 감성
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
-                    bgGrad.addColorStop(0, "#0b0c2a");
-                    bgGrad.addColorStop(0.5, "#2b0d4f");
-                    bgGrad.addColorStop(1, "#111827");
+                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 440);
+                    bgGrad.addColorStop(0, "#090d16");
+                    bgGrad.addColorStop(0.5, "#1e1b4b");
+                    bgGrad.addColorStop(1, "#172554");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // 성운 코어 빛 번짐
-                    let nebulaGrad = ctx.createRadialGradient(450, 180, 20, 450, 180, 220);
-                    nebulaGrad.addColorStop(0, "rgba(236, 72, 153, 0.35)");
-                    nebulaGrad.addColorStop(0.5, "rgba(59, 130, 246, 0.25)");
-                    nebulaGrad.addColorStop(1, "transparent");
-                    ctx.fillStyle = nebulaGrad;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // 반짝이는 별무리
-                    ctx.fillStyle = "#ffffff";
-                    let stars = [ [50,40], [120,90], [230,30], [340,110], [420,60], [510,130], [600,45], [80,180], [290,220], [480,190], [150,280], [380,310] ];
+                    ctx.fillStyle = "rgba(226, 232, 240, 0.4)";
+                    let stars = [ [70,50], [180,100], [330,40], [450,130], [560,70], [680,150], [820,55], [100,210], [400,260], [650,220] ];
                     stars.forEach(s => { ctx.fillRect(s[0], s[1], 2, 2); });
                 } else if (themeLevel === 1) {
-                    // [테마 1: 노을빛 호수와 부두] 보내주신 푸른 보랏빛 하늘과 잔잔한 물결, 나무 선착장 감성
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
+                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 440);
                     bgGrad.addColorStop(0, "#25316d");
                     bgGrad.addColorStop(0.5, "#57417e");
                     bgGrad.addColorStop(1, "#b57186");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // 잔잔한 수평선 및 물결 반사
                     ctx.fillStyle = "rgba(15, 23, 42, 0.3)";
-                    ctx.fillRect(0, 240, 650, 120);
-
-                    // 선착장 실루엣 펜스
-                    ctx.strokeStyle = "rgba(30, 41, 59, 0.8)";
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.moveTo(0, 280); ctx.lineTo(180, 280);
-                    ctx.moveTo(30, 260); ctx.lineTo(30, 300);
-                    ctx.moveTo(90, 260); ctx.lineTo(90, 300);
-                    ctx.moveTo(150, 260); ctx.lineTo(150, 300);
-                    ctx.stroke();
+                    ctx.fillRect(0, 300, 900, 140);
                 } else if (themeLevel === 2) {
-                    // [테마 2: 몽환적인 구름 바다 (하늘 위 풍경)] 보내주신 황금빛 구름과 녹색 대지가 어우러진 하늘 위 뷰 감성
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
+                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 440);
                     bgGrad.addColorStop(0, "#1d4ed8");
                     bgGrad.addColorStop(0.5, "#f59e0b");
                     bgGrad.addColorStop(1, "#b45309");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // 대형 뭉게구름 군락
                     ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
                     ctx.beginPath();
-                    ctx.arc(100, 180, 50, 0, Math.PI * 2);
-                    ctx.arc(150, 160, 65, 0, Math.PI * 2);
-                    ctx.arc(200, 185, 45, 0, Math.PI * 2);
+                    ctx.arc(150, 200, 60, 0, Math.PI * 2);
+                    ctx.arc(210, 180, 80, 0, Math.PI * 2);
+                    ctx.arc(270, 205, 55, 0, Math.PI * 2);
                     ctx.fill();
 
                     ctx.beginPath();
-                    ctx.arc(480, 210, 60, 0, Math.PI * 2);
-                    ctx.arc(540, 190, 75, 0, Math.PI * 2);
-                    ctx.arc(600, 215, 50, 0, Math.PI * 2);
+                    ctx.arc(680, 240, 70, 0, Math.PI * 2);
+                    ctx.arc(760, 215, 90, 0, Math.PI * 2);
                     ctx.fill();
                 } else if (themeLevel === 3) {
-                    // [테마 3: 심해 오션] 딥 블루 바다 테마
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
+                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 440);
                     bgGrad.addColorStop(0, "#0369a1");
                     bgGrad.addColorStop(1, "#0c4a6e");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-                    ctx.beginPath(); ctx.arc(180, 220, 140, Math.PI, 0, false); ctx.fill();
-                    ctx.beginPath(); ctx.arc(500, 260, 180, Math.PI, 0, false); ctx.fill();
+                    ctx.beginPath(); ctx.arc(250, 280, 160, Math.PI, 0, false); ctx.fill();
+                    ctx.beginPath(); ctx.arc(700, 320, 200, Math.PI, 0, false); ctx.fill();
                 } else if (themeLevel === 4) {
-                    // [테마 4: 외계 행성과 오로라]
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
+                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 440);
                     bgGrad.addColorStop(0, "#18181b");
                     bgGrad.addColorStop(1, "#3f3f46");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     ctx.fillStyle = "#52525b";
-                    ctx.beginPath(); ctx.arc(520, 100, 60, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(720, 120, 70, 0, Math.PI * 2); ctx.fill();
                     ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-                    ctx.lineWidth = 5;
-                    ctx.beginPath(); ctx.ellipse(520, 100, 95, 25, 0.3, 0, Math.PI * 2); ctx.stroke();
+                    ctx.lineWidth = 6;
+                    ctx.beginPath(); ctx.ellipse(720, 120, 115, 30, 0.3, 0, Math.PI * 2); ctx.stroke();
                 } else {
-                    // [테마 5: 판타지 요새 야경]
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
+                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 440);
                     bgGrad.addColorStop(0, "#020617");
                     bgGrad.addColorStop(1, "#0f172a");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     ctx.fillStyle = "#1e293b";
-                    ctx.fillRect(60, 180, 90, 180);
-                    ctx.fillRect(480, 150, 110, 210);
-                    ctx.beginPath(); ctx.moveTo(60, 180); ctx.lineTo(105, 110); ctx.lineTo(150, 180); ctx.fill();
-                    ctx.beginPath(); ctx.moveTo(480, 150); ctx.lineTo(535, 80); ctx.lineTo(590, 150); ctx.fill();
-
-                    ctx.fillStyle = "#ca8a04";
-                    ctx.fillRect(85, 210, 15, 30); ctx.fillRect(115, 210, 15, 30);
-                    ctx.fillRect(510, 180, 20, 35); ctx.fillRect(550, 180, 20, 35);
+                    ctx.fillRect(80, 220, 120, 220);
+                    ctx.fillRect(680, 180, 140, 260);
                 }
             }
 
@@ -521,16 +481,16 @@ with col_game:
 
                 ctx.strokeStyle = "#475569";
                 ctx.lineWidth = 4;
-                ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(650, 360); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 440); ctx.lineTo(900, 440); ctx.stroke();
 
                 if (!hasImage) {
                     ctx.fillStyle = "#f43f5e";
-                    ctx.font = "bold 20px 'Courier New'";
+                    ctx.font = "bold 22px 'Courier New'";
                     ctx.textAlign = "center";
-                    ctx.fillText("⚠️ WAITING FOR CHARACTER IMAGE", canvas.width / 2, canvas.height / 2 - 15);
+                    ctx.fillText("⚠️ 오른쪽 패널에서 인물 사진을 업로드해 주세요!", canvas.width / 2, canvas.height / 2 - 15);
                     ctx.fillStyle = "#38bdf8";
-                    ctx.font = "14px 'Courier New'";
-                    ctx.fillText("Upload a photo on the right panel to start game!", canvas.width / 2, canvas.height / 2 + 20);
+                    ctx.font = "15px 'Courier New'";
+                    ctx.fillText("Upload a photo to start RUNNING BONES!", canvas.width / 2, canvas.height / 2 + 25);
                 } else {
                     if (!isPaused && !isCountdown && !isGameOver) {
                         if (jumpCount > 0) {
@@ -551,9 +511,9 @@ with col_game:
                         }
 
                         let charCurrentY = charBaseY + jumpHeight;
-                        let charHeadY = isCrouching ? charCurrentY - 18 : charCurrentY - 44;
-                        let charLeft = charX - 12;
-                        let charRight = charX + 12;
+                        let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 50;
+                        let charLeft = charX - 14;
+                        let charRight = charX + 14;
 
                         let obsLeft = obstacleX;
                         let obsRight = obstacleX + obstacleWidth;
@@ -577,30 +537,30 @@ with col_game:
 
                     const themeNames = ["🌌 성운 우주", "🌊 노을빛 호수", "☁️ 하늘 위 구름", "🌊 심해 오션", "🪐 외계 행성", "🏰 다크 요새"];
                     ctx.fillStyle = "#e2e8f0";
-                    ctx.font = "bold 13px 'Courier New'";
+                    ctx.font = "bold 14px 'Courier New'";
                     ctx.textAlign = "left";
                     ctx.fillText("SCORE: " + score + " [" + themeNames[themeLevel] + "]", 20, 35);
 
                     ctx.fillStyle = "#94a3b8";
-                    ctx.font = "11px 'Courier New'";
-                    ctx.fillText("⌨️ Space(x2):2단점프 | Ctrl:숙이기 | ESC:일시정지", 195, 35);
+                    ctx.font = "12px 'Courier New'";
+                    ctx.fillText("⌨️ Space(x2):2단점프 | Ctrl:숙이기 | ESC:일시정지", 380, 35);
 
                     if (isGameOver) {
                         ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                         ctx.fillStyle = "#f43f5e";
-                        ctx.font = "bold 32px 'Courier New'";
+                        ctx.font = "bold 36px 'Courier New'";
                         ctx.textAlign = "center";
-                        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20);
+                        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 25);
 
                         ctx.fillStyle = "#38bdf8";
-                        ctx.font = "16px 'Courier New'";
+                        ctx.font = "18px 'Courier New'";
                         ctx.fillText("Final Score: " + score, canvas.width / 2, canvas.height / 2 + 15);
 
                         ctx.fillStyle = "#94a3b8";
-                        ctx.font = "14px 'Courier New'";
-                        ctx.fillText("Click or Space to restart", canvas.width / 2, canvas.height / 2 + 55);
+                        ctx.font = "15px 'Courier New'";
+                        ctx.fillText("Click or Space to restart", canvas.width / 2, canvas.height / 2 + 60);
                     }
 
                     if (isPaused) {
@@ -608,20 +568,20 @@ with col_game:
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                         ctx.fillStyle = "#f43f5e";
-                        ctx.font = "bold 26px 'Courier New'";
+                        ctx.font = "bold 30px 'Courier New'";
                         ctx.textAlign = "center";
-                        ctx.fillText("GAME PAUSED", canvas.width / 2, 120);
+                        ctx.fillText("GAME PAUSED", canvas.width / 2, 140);
 
                         ctx.fillStyle = "#0284c7";
-                        ctx.fillRect(225, 210, 200, 40);
+                        ctx.fillRect(350, 250, 200, 40);
                         ctx.fillStyle = "#ffffff";
-                        ctx.font = "bold 15px 'Courier New'";
-                        ctx.fillText("▶ 이어서 재생", canvas.width / 2, 235);
+                        ctx.font = "bold 16px 'Courier New'";
+                        ctx.fillText("▶ 이어서 재생", canvas.width / 2, 275);
 
                         ctx.fillStyle = "#475569";
-                        ctx.fillRect(225, 270, 200, 40);
+                        ctx.fillRect(350, 310, 200, 40);
                         ctx.fillStyle = "#ffffff";
-                        ctx.fillText("🔄 처음으로", canvas.width / 2, 295);
+                        ctx.fillText("🔄 처음으로", canvas.width / 2, 335);
                     }
 
                     if (isCountdown) {
@@ -629,16 +589,16 @@ with col_game:
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                         ctx.fillStyle = "#38bdf8";
-                        ctx.font = "bold 60px 'Courier New'";
+                        ctx.font = "bold 70px 'Courier New'";
                         ctx.textAlign = "center";
                         ctx.shadowColor = "#38bdf8";
-                        ctx.shadowBlur = 10;
-                        ctx.fillText(countdownValue, canvas.width / 2, canvas.height / 2 + 15);
+                        ctx.shadowBlur = 12;
+                        ctx.fillText(countdownValue, canvas.width / 2, canvas.height / 2 + 20);
                         ctx.shadowBlur = 0;
 
                         ctx.fillStyle = "#94a3b8";
-                        ctx.font = "16px 'Courier New'";
-                        ctx.fillText("GET READY...", canvas.width / 2, canvas.height / 2 - 50);
+                        ctx.font = "18px 'Courier New'";
+                        ctx.fillText("GET READY...", canvas.width / 2, canvas.height / 2 - 60);
                     }
                 }
 
@@ -655,4 +615,4 @@ with col_game:
     game_html = game_html.replace("LANDMARKS_DATA_PLACEHOLDER", landmarks_json)
     game_html = game_html.replace("SKIN_COLOR_PLACEHOLDER", skin_color)
 
-    components.html(game_html, height=430)
+    components.html(game_html, height=510)
