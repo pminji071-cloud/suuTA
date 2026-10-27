@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭하여 점프**하며 무작위 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭 또는 스페이스 바**로 점프하며 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -129,7 +129,6 @@ with col_game:
             let jumpVelocity = 0;
             let jumpHeight = 0;
             
-            // 완전 랜덤 장애물 속성
             let obstacleX = 700;
             let obstacleWidth = 35;
             let obstacleHeight = 50;
@@ -148,23 +147,19 @@ with col_game:
             const shapeList = ["rect", "circle", "triangle", "star"];
             const colorList = ["#ffdd59", "#ff007f", "#00fff5", "#ff5722", "#9c27b0", "#e91e63", "#76ff03"];
 
-            // 장애물의 모든 요소(크기, 속도, 공중/지상 위치, 모양, 색상, 출연 간격) 완전 무작위 설정
             function resetObstacle() {
-                obstacleWidth = Math.floor(20 + Math.random() * 35); // 너비 20~55px
-                obstacleHeight = Math.floor(25 + Math.random() * 45); // 높이 25~70px
-                obstacleSpeed = 5 + Math.random() * 6; // 속도 5~11px
+                obstacleWidth = Math.floor(20 + Math.random() * 35);
+                obstacleHeight = Math.floor(25 + Math.random() * 45);
+                obstacleSpeed = 5 + Math.random() * 6;
 
-                // 공중 장애물과 지상 장애물 무작위 결정 (30% 확률로 공중 떠다님)
                 const isAir = Math.random() < 0.3;
                 if (isAir) {
-                    obstacleY = 220 + Math.random() * 60; // 공중 (220~280px)
+                    obstacleY = 220 + Math.random() * 60;
                 } else {
-                    obstacleY = 360 - obstacleHeight; // 지상 바닥 밀착
+                    obstacleY = 360 - obstacleHeight;
                 }
 
-                // 등장 위치 및 간격 무작위화 (700~1000px)
                 obstacleX = 650 + Math.random() * 350;
-
                 obstacleShape = shapeList[Math.floor(Math.random() * shapeList.length)];
                 obstacleColor = colorList[Math.floor(Math.random() * colorList.length)];
             }
@@ -185,6 +180,15 @@ with col_game:
                 }, 1000);
             }
 
+            function triggerJump() {
+                if (!hasImage || isPaused || isCountdown || isGameOver) return;
+                if (!isJumping) {
+                    isJumping = true;
+                    jumpVelocity = -14;
+                }
+            }
+
+            // 마우스 클릭 이벤트 (점프 또는 일시정지 메뉴 선택)
             canvas.addEventListener("click", function(e) {
                 if (!hasImage) return;
 
@@ -217,14 +221,27 @@ with col_game:
                     return;
                 }
 
-                if (!isJumping && !isCountdown) {
-                    isJumping = true;
-                    jumpVelocity = -14;
-                }
+                triggerJump();
             });
 
+            // 키보드 입력 이벤트 (스페이스 바 점프 및 ESC 일시정지)
             window.addEventListener("keydown", function(e) {
-                if (e.key === "Escape" && hasImage && !isGameOver) {
+                if (!hasImage) return;
+
+                if (e.code === "Space") {
+                    e.preventDefault(); // 스페이스 바 누를 시 화면 스크롤 방지
+                    if (isGameOver) {
+                        isGameOver = false;
+                        score = 0;
+                        resetObstacle();
+                        jumpHeight = 0;
+                        isJumping = false;
+                        return;
+                    }
+                    triggerJump();
+                }
+
+                if (e.key === "Escape" && !isGameOver) {
                     if (isPaused) {
                         startCountdown();
                     } else {
@@ -356,14 +373,12 @@ with col_game:
                             }
                         }
 
-                        // 장애물 이동
                         obstacleX -= obstacleSpeed;
                         if (obstacleX < -60) {
                             resetObstacle();
                             score += 100;
                         }
 
-                        // 정밀 충돌 판정 (AABB 박스 및 Y축 높이 판정)
                         let charCurrentY = charBaseY + jumpHeight;
                         let charHeadY = charCurrentY - 45;
                         
@@ -389,7 +404,7 @@ with col_game:
 
                     ctx.fillStyle = "#ffffff";
                     ctx.font = "14px 'Courier New'";
-                    ctx.fillText("🖱️ Click to Jump | [ESC] Pause", 300, 40);
+                    ctx.fillText("⌨️ Space/Click to Jump | [ESC] Pause", 240, 40);
 
                     if (isGameOver) {
                         ctx.fillStyle = "rgba(15, 52, 96, 0.9)";
@@ -406,7 +421,7 @@ with col_game:
 
                         ctx.fillStyle = "#ffffff";
                         ctx.font = "14px 'Courier New'";
-                        ctx.fillText("Click anywhere to restart", canvas.width / 2, canvas.height / 2 + 55);
+                        ctx.fillText("Click or Space to restart", canvas.width / 2, canvas.height / 2 + 55);
                     }
 
                     if (isPaused) {
