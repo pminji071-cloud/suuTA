@@ -11,14 +11,12 @@ st.set_page_config(page_title="내 뼈다귀가 멈추지 않아! 🦴🎮", pag
 # 🌟 전체 Streamlit 배경 및 빈 공간을 귀여운 파스텔톤 다크 테마로 꾸미는 CSS 주입
 st.markdown("""
     <style>
-        /* 전체 앱 배경 색상 부드러운 네이비/퍼플 톤으로 변경 */
         .stApp {
             background: linear-gradient(135deg, #1e1e2f 0%, #25233c 50%, #2d2438 100%);
             color: #f8fafc;
             font-family: 'Quicksand', 'Nunito', sans-serif;
         }
         
-        /* 우측 패널(사이드바 대체 컬럼)을 귀여운 모서리가 둥근 박스로 꾸미기 */
         [data-testid="column"]:nth-of-type(2) {
             background-color: rgba(35, 35, 54, 0.75);
             padding: 20px;
@@ -27,7 +25,6 @@ st.markdown("""
             box-shadow: 0 10px 25px rgba(255, 183, 178, 0.15);
         }
 
-        /* 파일 업로더 디자인 귀엽게 커스텀 */
         [data-testid="stFileUploader"] {
             background-color: rgba(45, 45, 70, 0.6);
             border: 2px dashed #ffdac1;
@@ -35,7 +32,6 @@ st.markdown("""
             padding: 10px;
         }
 
-        /* 버튼 디자인 (알콩달콩 파스텔 핑크) */
         .stButton>button {
             border-radius: 20px;
             background-color: #ffb7b2;
@@ -51,7 +47,6 @@ st.markdown("""
             transform: translateY(-2px);
         }
 
-        /* Expander(보관함) 디자인 부드럽게 */
         .streamlit-expanderHeader {
             background-color: rgba(45, 45, 70, 0.5);
             border-radius: 12px;
@@ -59,7 +54,6 @@ st.markdown("""
             font-weight: bold;
         }
 
-        /* 타이틀 글씨에 귀여운 포인트 컬러 주기 */
         h1, h3 {
             color: #ffdac1 !important;
             font-family: 'Quicksand', sans-serif;
@@ -164,7 +158,6 @@ with col_game:
     </head>
     <body>
         <div class="game-container">
-            <!-- 둥글고 귀여운 테두리의 대화면 캔버스 (1100x560) -->
             <canvas id="gameCanvas" width="1100" height="560"></canvas>
         </div>
 
@@ -191,7 +184,14 @@ with col_game:
             let obstacleSpeed = 5;
             let obstacleShape = "crystal";
             let obstacleColor = "#ff9aa2";
-            
+
+            // ⭐ 별 아이템 변수 선언 (랜덤 등장, 가끔씩만 생성)
+            let starX = -200;
+            let starY = 300;
+            let starSize = 25;
+            let starActive = false;
+            let starEffectTimer = 0; // 별을 먹었을 때 텍스트 효과 표시용
+
             let score = 0;
             let isPaused = false;
             let isGameOver = false;
@@ -235,6 +235,14 @@ with col_game:
                 obstacleX = 1100 + Math.random() * 400;
                 obstacleShape = caligoShapes[Math.floor(Math.random() * caligoShapes.length)];
                 obstacleColor = caligoColors[Math.floor(Math.random() * caligoColors.length)];
+
+                // ⭐ 장애물이 리셋될 때 25% 확률로 아주 가끔씩만 별 생성 (자주 안 나오게 조절)
+                if (!starActive && Math.random() < 0.25) {
+                    starActive = true;
+                    starX = 1100 + Math.random() * 300;
+                    // 점프해서 먹거나 숙여서 피하는 위치 등 랜덤 배치
+                    starY = Math.random() < 0.5 ? 330 : 450; 
+                }
             }
 
             function startCountdown() {
@@ -272,6 +280,7 @@ with col_game:
                 if (isGameOver) {
                     isGameOver = false;
                     score = 0;
+                    starActive = false;
                     resetObstacle();
                     jumpHeight = 0;
                     jumpCount = 0;
@@ -285,6 +294,7 @@ with col_game:
                     }
                     else if (mouseX >= 450 && mouseX <= 650 && mouseY >= 320 && mouseY <= 360) {
                         score = 0;
+                        starActive = false;
                         resetObstacle();
                         jumpHeight = 0;
                         jumpCount = 0;
@@ -307,6 +317,7 @@ with col_game:
                     if (isGameOver) {
                         isGameOver = false;
                         score = 0;
+                        starActive = false;
                         resetObstacle();
                         jumpHeight = 0;
                         jumpCount = 0;
@@ -392,6 +403,36 @@ with col_game:
                     ctx.beginPath(); ctx.moveTo(x, cy - 16); ctx.lineTo(x, cy + 15); ctx.stroke();
                     ctx.beginPath(); ctx.moveTo(x - 15, cy - 8); ctx.lineTo(x + 15, cy - 8); ctx.stroke();
                 }
+                ctx.shadowBlur = 0;
+            }
+
+            // ⭐ 캔버스에 예쁜 별 그리기 함수
+            function drawStar(cx, cy, spikes, outerRadius, innerRadius) {
+                let rot = (Math.PI / 2) * 3;
+                let x = cx;
+                let y = cy;
+                let step = Math.PI / spikes;
+
+                ctx.strokedStyle = "#ffd700";
+                ctx.fillStyle = "#ffdf00";
+                ctx.shadowColor = "#ffdf00";
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - outerRadius);
+                for (let i = 0; i < spikes; i++) {
+                    x = cx + Math.cos(rot) * outerRadius;
+                    y = cy + Math.sin(rot) * outerRadius;
+                    ctx.lineTo(x, y);
+                    rot += step;
+
+                    x = cx + Math.cos(rot) * innerRadius;
+                    y = cy + Math.sin(rot) * innerRadius;
+                    ctx.lineTo(x, y);
+                    rot += step;
+                }
+                ctx.lineTo(cx, cy - outerRadius);
+                ctx.closePath();
+                ctx.fill();
                 ctx.shadowBlur = 0;
             }
 
@@ -557,7 +598,33 @@ with col_game:
                         obstacleX -= obstacleSpeed;
                         if (obstacleX < -60) {
                             resetObstacle();
-                            score += 100;
+                            score += 100; // 기본 점수 획득
+                        }
+
+                        // ⭐ 별 움직임 및 충돌(획득) 체크
+                        if (starActive) {
+                            starX -= obstacleSpeed;
+                            if (starX < -50) {
+                                starActive = false;
+                            }
+
+                            // 캐릭터와 별의 충돌 판정
+                            let charCurrentY = charBaseY + jumpHeight;
+                            let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 50;
+                            let charLeft = charX - 14;
+                            let charRight = charX + 14;
+
+                            if (
+                                charRight > starX - 15 &&
+                                charLeft < starX + 15 &&
+                                charCurrentY > starY - 15 &&
+                                charHeadY < starY + 15
+                            ) {
+                                // 별 획득! 점수 2배(추가 100점 더해줌)
+                                score += 100; 
+                                starActive = false;
+                                starEffectTimer = 30; // 텍스트 효과 지속 프레임
+                            }
                         }
 
                         let charCurrentY = charBaseY + jumpHeight;
@@ -580,7 +647,24 @@ with col_game:
                         }
                     }
 
+                    // 장애물 및 별 렌더링
                     drawObstacle();
+
+                    if (starActive) {
+                        drawStar(starX, starY, 5, 16, 8);
+                    }
+
+                    // ⭐ 별을 먹었을 때 뜨는 "DOUBLE SCORE! 🌟" 효과 텍스트
+                    if (starEffectTimer > 0) {
+                        starEffectTimer--;
+                        ctx.fillStyle = "#ffdf00";
+                        ctx.font = "bold 20px 'Quicksand', sans-serif";
+                        ctx.textAlign = "center";
+                        ctx.shadowColor = "#ffdf00";
+                        ctx.shadowBlur = 10;
+                        ctx.fillText("🌟 BONUS x2 SCORE! 🌟", charX + 20, charBaseY + jumpHeight - 70);
+                        ctx.shadowBlur = 0;
+                    }
 
                     let renderY = charBaseY + jumpHeight;
                     drawPoseCharacter(charX, renderY, poseLandmarks, isCrouching);
