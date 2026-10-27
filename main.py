@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **점수 구간별(1000점→1800점→2300점→이후 500점마다)**로 장애물 속도가 빨라집니다. Space 2단점프와 Ctrl 숙이기로 생존하세요!")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **600점→1200점→1800점→2200점 이후 400점마다** 가속됩니다. Space 2단점프와 Ctrl 숙이기로 생존하세요!")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -150,20 +150,21 @@ with col_game:
             const caligoShapes = ["crystal", "spike", "core", "blade"];
             const caligoColors = ["#f43f5e", "#ec4899", "#a855f7", "#38bdf8", "#fbbf24", "#34d399"];
 
-            // 점수 구간별 속도 계산 함수
+            // 600 -> 1200 -> 1800 -> 2200 이후 400점마다 가속
             function calculateSpeed() {
-                let base = 4.5 + Math.random() * 1.5; // 초기 천천한 속도
+                let base = 4.5 + Math.random() * 1.5;
                 
-                if (score >= 2300) {
-                    // 2300점 이후부터는 500점마다 추가 가속
-                    let extraTiers = Math.floor((score - 2300) / 500) + 1;
-                    return base + 3.0 + (extraTiers * 0.6);
+                if (score >= 2200) {
+                    let extraTiers = Math.floor((score - 2200) / 400) + 1;
+                    return base + 3.2 + (extraTiers * 0.5);
                 } else if (score >= 1800) {
-                    return base + 2.5; // 1800점대 속도
-                } else if (score >= 1000) {
-                    return base + 1.5; // 1000점대 속도
+                    return base + 2.6;
+                } else if (score >= 1200) {
+                    return base + 1.8;
+                } else if (score >= 600) {
+                    return base + 1.0;
                 } else {
-                    return base;       // 1000점 미만 (천천히)
+                    return base;
                 }
             }
 
@@ -171,7 +172,6 @@ with col_game:
                 obstacleWidth = Math.floor(25 + Math.random() * 30);
                 obstacleHeight = Math.floor(30 + Math.random() * 40);
                 
-                // 점수 구간에 맞춰 속도 반영
                 obstacleSpeed = calculateSpeed();
 
                 const isAir = Math.random() < 0.35;
