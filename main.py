@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **Space/클릭**으로 점프하고, **Ctrl 키**로 숙여서 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **2번 연속 점프(2단 점프)**와 **Ctrl 키** 숙이기로 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -125,8 +125,11 @@ with col_game:
 
             let charBaseY = 320;
             let charX = 120;
-            let isJumping = false;
-            let isCrouching = false; // 숙이기(앉기) 상태 변수
+            
+            // 점프 및 2단 점프 관련 변수
+            let jumpCount = 0;
+            const maxJumps = 2;
+            let isCrouching = false;
             let jumpVelocity = 0;
             let jumpHeight = 0;
             
@@ -153,11 +156,11 @@ with col_game:
                 obstacleHeight = Math.floor(25 + Math.random() * 45);
                 obstacleSpeed = 5 + Math.random() * 6;
 
-                const isAir = Math.random() < 0.35; // 35% 확률로 공중 장애물 등장 (숙여서 피하기 용도)
+                const isAir = Math.random() < 0.35;
                 if (isAir) {
-                    obstacleY = 230 + Math.random() * 40; // 공중 높이
+                    obstacleY = 230 + Math.random() * 40;
                 } else {
-                    obstacleY = 360 - obstacleHeight; // 지상
+                    obstacleY = 360 - obstacleHeight;
                 }
 
                 obstacleX = 650 + Math.random() * 350;
@@ -181,11 +184,13 @@ with col_game:
                 }, 1000);
             }
 
+            // 2단 점프 통합 트리거 함수
             function triggerJump() {
                 if (!hasImage || isPaused || isCountdown || isGameOver || isCrouching) return;
-                if (!isJumping) {
-                    isJumping = true;
-                    jumpVelocity = -14;
+                
+                if (jumpCount < maxJumps) {
+                    jumpCount++;
+                    jumpVelocity = -12; // 점프 힘
                 }
             }
 
@@ -201,7 +206,7 @@ with col_game:
                     score = 0;
                     resetObstacle();
                     jumpHeight = 0;
-                    isJumping = false;
+                    jumpCount = 0;
                     isCrouching = false;
                     return;
                 }
@@ -214,7 +219,7 @@ with col_game:
                         score = 0;
                         resetObstacle();
                         jumpHeight = 0;
-                        isJumping = false;
+                        jumpCount = 0;
                         isCrouching = false;
                         isPaused = false;
                         isCountdown = false;
@@ -226,7 +231,6 @@ with col_game:
                 triggerJump();
             });
 
-            // 키보드 누를 때 (Space 점프, Ctrl 숙이기, ESC 일시정지)
             window.addEventListener("keydown", function(e) {
                 if (!hasImage) return;
 
@@ -237,7 +241,7 @@ with col_game:
                         score = 0;
                         resetObstacle();
                         jumpHeight = 0;
-                        isJumping = false;
+                        jumpCount = 0;
                         isCrouching = false;
                         return;
                     }
@@ -246,7 +250,7 @@ with col_game:
 
                 if (e.code === "ControlLeft" || e.code === "ControlRight") {
                     e.preventDefault();
-                    if (!isJumping && !isPaused && !isCountdown && !isGameOver) {
+                    if (jumpCount === 0 && !isPaused && !isCountdown && !isGameOver) {
                         isCrouching = true;
                     }
                 }
@@ -262,7 +266,6 @@ with col_game:
                 }
             });
 
-            // 키보드 뗄 때 (Ctrl 숙이기 해제)
             window.addEventListener("keyup", function(e) {
                 if (e.code === "ControlLeft" || e.code === "ControlRight") {
                     isCrouching = false;
@@ -281,7 +284,6 @@ with col_game:
                 ctx.shadowColor = "SKIN_COLOR_PLACEHOLDER";
                 ctx.shadowBlur = 10;
 
-                // 숙이고 있을 때 캐릭터 높이를 압축해서 렌더링
                 let scale = crouching ? 65 : 110;
                 let offsetY = crouching ? 35 : 0;
 
@@ -382,12 +384,16 @@ with col_game:
                     ctx.fillText("Upload a photo on the right panel to start game!", canvas.width / 2, canvas.height / 2 + 20);
                 } else {
                     if (!isPaused && !isCountdown && !isGameOver) {
-                        if (isJumping) {
+                        // 점프 및 중력 물리 연산
+                        if (jumpCount > 0) {
                             jumpHeight += jumpVelocity;
-                            jumpVelocity += 0.8;
+                            jumpVelocity += 0.75; // 중력
+                            
+                            // 바닥에 착지했을 때
                             if (jumpHeight >= 0) {
                                 jumpHeight = 0;
-                                isJumping = false;
+                                jumpCount = 0;
+                                jumpVelocity = 0;
                             }
                         }
 
@@ -397,7 +403,6 @@ with col_game:
                             score += 100;
                         }
 
-                        // 충돌 판정 (숙이기 상태일 때는 상단 피격 박스가 낮아짐)
                         let charCurrentY = charBaseY + jumpHeight;
                         let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 45;
                         
@@ -422,8 +427,8 @@ with col_game:
                     ctx.fillText("SCORE: " + score, 20, 35);
 
                     ctx.fillStyle = "#ffffff";
-                    ctx.font = "12px 'Courier New'";
-                    ctx.fillText("⌨️ Space:Jump | Ctrl:Crouch | ESC:Pause", 220, 35);
+                    ctx.font = "11px 'Courier New'";
+                    ctx.fillText("⌨️ Space(x2):2단점프 | Ctrl:숙이기 | ESC:일시정지", 195, 35);
 
                     if (isGameOver) {
                         ctx.fillStyle = "rgba(15, 52, 96, 0.9)";
