@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **1,000점마다 아름답고 다채로운 실사풍 테마 배경**으로 자동 전환됩니다. Space 2단점프와 Ctrl 숙이기로 장애물을 피하세요.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **칼리고의 다크 악당 장애물**을 Space 2단점프와 Ctrl 숙이기로 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -137,8 +137,8 @@ with col_game:
             let obstacleHeight = 50;
             let obstacleY = 310;
             let obstacleSpeed = 6;
-            let obstacleShape = "rect";
-            let obstacleColor = "#ffdd59";
+            let obstacleShape = "crystal";
+            let obstacleColor = "#9d4edd";
             
             let score = 0;
             let isPaused = false;
@@ -147,24 +147,25 @@ with col_game:
             let countdownValue = 3;
             let countdownTimer = null;
 
-            const shapeList = ["rect", "circle", "triangle", "star"];
-            const colorList = ["#ffdd59", "#ff007f", "#00fff5", "#ff5722", "#9c27b0", "#e91e63", "#76ff03"];
+            // 칼리고 악당 테마 모양 리스트 (크리스탈, 다크 스파이크, 악당 코어, 섀도우 블레이드)
+            const caligoShapes = ["crystal", "spike", "core", "blade"];
+            const caligoColors = ["#9d4edd", "#7b2cbf", "#ff0054", "#3f37c9", "#480ca8", "#ff4d6d"];
 
             function resetObstacle() {
-                obstacleWidth = Math.floor(20 + Math.random() * 35);
-                obstacleHeight = Math.floor(25 + Math.random() * 45);
+                obstacleWidth = Math.floor(25 + Math.random() * 35);
+                obstacleHeight = Math.floor(30 + Math.random() * 45);
                 obstacleSpeed = 5 + Math.random() * 6;
 
                 const isAir = Math.random() < 0.35;
                 if (isAir) {
-                    obstacleY = 230 + Math.random() * 40;
+                    obstacleY = 220 + Math.random() * 45;
                 } else {
                     obstacleY = 360 - obstacleHeight;
                 }
 
                 obstacleX = 650 + Math.random() * 350;
-                obstacleShape = shapeList[Math.floor(Math.random() * shapeList.length)];
-                obstacleColor = colorList[Math.floor(Math.random() * colorList.length)];
+                obstacleShape = caligoShapes[Math.floor(Math.random() * caligoShapes.length)];
+                obstacleColor = caligoColors[Math.floor(Math.random() * caligoColors.length)];
             }
 
             function startCountdown() {
@@ -324,45 +325,62 @@ with col_game:
                 ctx.shadowBlur = 0;
             }
 
+            // 칼리고 악당 스타일의 독특하고 위협적인 장애물 렌더링
             function drawObstacle() {
                 ctx.fillStyle = obstacleColor;
-                ctx.shadowColor = obstacleColor;
-                ctx.shadowBlur = 12;
+                ctx.shadowColor = "#ff0054";
+                ctx.shadowBlur = 15;
 
-                if (obstacleShape === "rect") {
-                    ctx.fillRect(obstacleX, obstacleY, obstacleWidth, obstacleHeight);
-                } else if (obstacleShape === "circle") {
+                if (obstacleShape === "crystal") {
+                    // 다크 크리스탈 모양 (마름모형 육면체)
+                    ctx.beginPath();
+                    ctx.moveTo(obstacleX + obstacleWidth / 2, obstacleY);
+                    ctx.lineTo(obstacleX + obstacleWidth, obstacleY + obstacleHeight * 0.4);
+                    ctx.lineTo(obstacleX + obstacleWidth / 2, obstacleY + obstacleHeight);
+                    ctx.lineTo(obstacleX, obstacleY + obstacleHeight * 0.4);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (obstacleShape === "spike") {
+                    // 뾰족한 악당 스파이크
+                    ctx.beginPath();
+                    ctx.moveTo(obstacleX + obstacleWidth / 2, obstacleY);
+                    ctx.lineTo(obstacleX + obstacleWidth, obstacleY + obstacleHeight);
+                    ctx.lineTo(obstacleX, obstacleY + obstacleHeight);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (obstacleShape === "core") {
+                    // 칼리고 다크 코어 (빛나는 원형 에너지 오브)
                     let radius = obstacleWidth / 2;
                     ctx.beginPath();
                     ctx.arc(obstacleX + radius, obstacleY + radius, radius, 0, Math.PI * 2);
                     ctx.fill();
-                } else if (obstacleShape === "triangle") {
+                    // 내부 코어 눈동자/심볼 표현
+                    ctx.fillStyle = "#ffffff";
                     ctx.beginPath();
-                    ctx.moveTo(obstacleX + obstacleWidth / 2, obstacleY);
-                    ctx.lineTo(obstacleX, obstacleY + obstacleHeight);
-                    ctx.lineTo(obstacleX + obstacleWidth, obstacleY + obstacleHeight);
-                    ctx.closePath();
+                    ctx.arc(obstacleX + radius, obstacleY + radius, radius * 0.4, 0, Math.PI * 2);
                     ctx.fill();
-                } else if (obstacleShape === "star") {
+                } else if (obstacleShape === "blade") {
+                    // 회전하는 섀도우 블레이드 (별/십자 날카로운 형태)
                     let cx = obstacleX + obstacleWidth / 2;
                     let cy = obstacleY + obstacleHeight / 2;
-                    let outerRadius = obstacleHeight / 2;
-                    let innerRadius = outerRadius / 2;
+                    let size = obstacleWidth / 2;
                     ctx.beginPath();
-                    for (let i = 0; i < 5; i++) {
-                        ctx.lineTo(cx + Math.cos((18 + i * 72) * Math.PI / 180) * outerRadius, cy - Math.sin((18 + i * 72) * Math.PI / 180) * outerRadius);
-                        ctx.lineTo(cx + Math.cos((54 + i * 72) * Math.PI / 180) * innerRadius, cy - Math.sin((54 + i * 72) * Math.PI / 180) * innerRadius);
-                    }
+                    ctx.moveTo(cx, cy - size);
+                    ctx.lineTo(cx + size * 0.5, cy - size * 0.5);
+                    ctx.lineTo(cx + size, cy);
+                    ctx.lineTo(cx + size * 0.5, cy + size * 0.5);
+                    ctx.lineTo(cx, cy + size);
+                    ctx.lineTo(cx - size * 0.5, cy + size * 0.5);
+                    ctx.lineTo(cx - size, cy);
+                    ctx.lineTo(cx - size * 0.5, cy - size * 0.5);
                     ctx.closePath();
                     ctx.fill();
                 }
                 ctx.shadowBlur = 0;
             }
 
-            // 실사풍 고품질 그래픽 배경 렌더링 함수
             function drawGorgeousBackground(themeLevel) {
                 if (themeLevel === 0) {
-                    // 🌌 0~999점: 밤하늘 우주 (반짝이는 은하수와 별무리)
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#03001e");
                     bgGrad.addColorStop(0.5, "#7303c0");
@@ -372,39 +390,31 @@ with col_game:
 
                     ctx.fillStyle = "#ffffff";
                     let stars = [ [50,40], [120,90], [230,30], [340,110], [420,60], [510,130], [600,45], [80,180], [290,220], [480,190] ];
-                    stars.forEach(s => {
-                        ctx.fillRect(s[0], s[1], 2, 2);
-                    });
+                    stars.forEach(s => { ctx.fillRect(s[0], s[1], 2, 2); });
                 } else if (themeLevel === 1) {
-                    // ⛰️ 1,000~1,999점: 웅장한 첩첩산중
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#2c3e50");
                     bgGrad.addColorStop(1, "#f1f2f6");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // 먼 산 능선
                     ctx.fillStyle = "#4b6584";
                     ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(120, 180); ctx.lineTo(280, 360); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(200, 360); ctx.lineTo(380, 130); ctx.lineTo(580, 360); ctx.fill();
-                    // 가까운 산 능선
                     ctx.fillStyle = "#38adae";
                     ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(180, 220); ctx.lineTo(400, 360); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(350, 360); ctx.lineTo(520, 190); ctx.lineTo(650, 360); ctx.fill();
                 } else if (themeLevel === 2) {
-                    // 🌊 2,000~2,999점: 에메랄드빛 환상 바다
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#00c6ff");
                     bgGrad.addColorStop(1, "#0072ff");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // 수평선 및 파도 결
                     ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
                     ctx.beginPath(); ctx.arc(150, 240, 120, Math.PI, 0, false); ctx.fill();
                     ctx.beginPath(); ctx.arc(480, 280, 160, Math.PI, 0, false); ctx.fill();
                 } else if (themeLevel === 3) {
-                    // ☁️ 3,000~3,999점: 몽환적인 일몰 하늘과 뭉게구름
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#ff7e5f");
                     bgGrad.addColorStop(0.6, "#feb47b");
@@ -412,7 +422,6 @@ with col_game:
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // 대형 뭉게구름
                     ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
                     ctx.beginPath();
                     ctx.arc(120, 140, 45, 0, Math.PI * 2);
@@ -425,35 +434,30 @@ with col_game:
                     ctx.arc(510, 165, 60, 0, Math.PI * 2);
                     ctx.fill();
                 } else if (themeLevel === 4) {
-                    // 🪐 4,000~4,999점: 신비로운 외계 행성과 성운
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#1f1c2c");
                     bgGrad.addColorStop(1, "#928dab");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // 대형 행성 및 고리
                     ctx.fillStyle = "#ff512f";
                     ctx.beginPath(); ctx.arc(500, 110, 65, 0, Math.PI * 2); ctx.fill();
                     ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
                     ctx.lineWidth = 5;
                     ctx.beginPath(); ctx.ellipse(500, 110, 105, 30, 0.4, 0, Math.PI * 2); ctx.stroke();
                 } else {
-                    // 🏰 5,000점 이상: 판타지 마법의 성 야경
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#141e30");
                     bgGrad.addColorStop(1, "#243b55");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // 성 실루엣
                     ctx.fillStyle = "#0b132b";
                     ctx.fillRect(60, 180, 90, 180);
                     ctx.fillRect(480, 150, 110, 210);
                     ctx.beginPath(); ctx.moveTo(60, 180); ctx.lineTo(105, 110); ctx.lineTo(150, 180); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(480, 150); ctx.lineTo(535, 80); ctx.lineTo(590, 150); ctx.fill();
 
-                    // 노란 성 창문 불빛
                     ctx.fillStyle = "#ffd700";
                     ctx.shadowColor = "#ffd700";
                     ctx.shadowBlur = 10;
@@ -469,7 +473,6 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
-                // 바닥선
                 ctx.strokeStyle = "#ff007f";
                 ctx.lineWidth = 5;
                 ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(650, 360); ctx.stroke();
