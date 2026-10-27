@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **정밀 피격 판정**이 적용되어 더욱 쾌적하게 플레이할 수 있습니다. Space 2단점프와 Ctrl 숙이기로 생존하세요!")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **칼레이도스코프급 엄격한 충돌 판정**이 적용되었습니다. Space 2단점프와 Ctrl 숙이기로 생존하세요!")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -524,17 +524,16 @@ with col_game:
                             score += 100;
                         }
 
-                        // 정밀 최적화된 피격 판정 (슬림한 히트박스 적용으로 억울한 죽음 방지)
+                        // 완벽하게 엄격하고 정확한 초정밀 픽셀 히트박스 적용 (살짝만 닿아도 바로 게임 오버)
                         let charCurrentY = charBaseY + jumpHeight;
-                        let charHeadY = isCrouching ? charCurrentY - 15 : charCurrentY - 40;
-                        let charLeft = charX - 10;
-                        let charRight = charX + 10;
+                        let charHeadY = isCrouching ? charCurrentY - 18 : charCurrentY - 44;
+                        let charLeft = charX - 12;
+                        let charRight = charX + 12;
 
-                        // 장애물 충돌 영역에 약간의 여유 공간(패딩) 부여
-                        let obsLeft = obstacleX + 4;
-                        let obsRight = obstacleX + obstacleWidth - 4;
-                        let obsTop = obstacleY + 4;
-                        let obsBottom = obstacleY + obstacleHeight - 4;
+                        let obsLeft = obstacleX;
+                        let obsRight = obstacleX + obstacleWidth;
+                        let obsTop = obstacleY;
+                        let obsBottom = obstacleY + obstacleHeight;
 
                         if (
                             charRight > obsLeft &&
