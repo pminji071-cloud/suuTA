@@ -4,7 +4,7 @@ import streamlit.components.v1 as components
 # 1. 페이지 설정 (와이드 레이아웃)
 st.set_page_config(page_title="Virtual Idol Arcade 🎮", layout="wide")
 
-# 2. 메인 화면과 우측 패널 레이아웃 구성 (왼쪽: 게임 / 오른쪽: 업로드 및 설정)
+# 2. 메인 화면과 우측 패널 레이아웃 구성
 col_game, col_panel = st.columns([2, 1])
 
 with col_panel:
@@ -39,10 +39,9 @@ with col_panel:
         st.warning("👈 먼저 캐릭터 사진을 업로드해 주세요!")
 
 with col_game:
-    # 타이틀 없이 바로 게임 스테이지 출력
     st.markdown("### 🕹️ VIRTUAL IDOL ARCADE STAGE")
     
-    # HTML5 Canvas 게임 (사진 업로드 전용 대기 화면 + 플레이 로직 분기)
+    # f-string 충돌 방지를 위해 문자열 바인딩 방식을 안전하게 변경한 HTML 코드
     game_html = f"""
     <!DOCTYPE html>
     <html>
@@ -85,7 +84,6 @@ with col_game:
             let isJumping = false;
             let jumpVelocity = 0;
 
-            // 마우스 움직임 이벤트 (아바타가 있을 때만 작동)
             canvas.addEventListener("mousemove", function(e) {{
                 if (!hasAvatar) return;
                 const rect = canvas.getBoundingClientRect();
@@ -94,7 +92,6 @@ with col_game:
                 if(targetY > 330) targetY = 330;
             }});
 
-            // 마우스 클릭 점프 이벤트 (아바타가 있을 때만 작동)
             canvas.addEventListener("click", function() {{
                 if (!hasAvatar) return;
                 if (!isJumping) {{
@@ -110,14 +107,12 @@ with col_game:
             function update() {{
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // 배경 그리드 라인
                 ctx.strokeStyle = "#16213e";
                 ctx.lineWidth = 1;
                 for(let i=0; i<canvas.width; i+=40) {{
                     ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
                 }}
 
-                // 바닥 라인
                 ctx.strokeStyle = "#ff007f";
                 ctx.lineWidth = 5;
                 ctx.beginPath();
@@ -126,7 +121,6 @@ with col_game:
                 ctx.stroke();
 
                 if (!hasAvatar) {{
-                    // 1. 사진이 없을 때 대기 화면 출력
                     ctx.fillStyle = "#ff007f";
                     ctx.font = "bold 20px 'Courier New'";
                     ctx.textAlign = "center";
@@ -136,33 +130,29 @@ with col_game:
                     ctx.font = "14px 'Courier New'";
                     ctx.fillText("Please upload a character image on the right panel!", canvas.width / 2, canvas.height / 2 + 20);
                 }} else {{
-                    // 2. 사진이 업로드되었을 때 게임 실행
                     if (!isJumping) {{
                         charY += (targetY - charY) * 0.15;
                     }} else {{
                         jumpHeight += jumpVelocity;
-                        jumpVelocity += 0.8; // 중력
+                        jumpVelocity += 0.8;
                         if (jumpHeight >= 0) {{
                             jumpHeight = 0;
                             isJumping = false;
                         }}
                     }}
 
-                    // 장애물 이동
                     obstacleX -= 6;
                     if (obstacleX < -40) {{
                         obstacleX = 700;
                         score += 100;
                     }}
 
-                    // 장애물 렌더링
                     ctx.fillStyle = "#ffdd59";
                     ctx.shadowColor = "#ffdd59";
                     ctx.shadowBlur = 10;
                     ctx.fillRect(obstacleX, 310, 35, 50);
                     ctx.shadowBlur = 0;
 
-                    // 플레이어 아바타 렌더링
                     ctx.fillStyle = "{skin_color}";
                     ctx.shadowColor = "{skin_color}";
                     ctx.shadowBlur = 15;
@@ -172,10 +162,27 @@ with col_game:
                     ctx.fill();
                     ctx.shadowBlur = 0;
 
-                    // 아바타 눈 표정
                     ctx.fillStyle = "#1a1a2e";
                     ctx.fillRect(112, renderY - 6, 5, 5);
                     ctx.fillRect(123, renderY - 6, 5, 5);
 
-                    // 스코어 및 안내 문구
-                    ctx.
+                    ctx.fillStyle = "#00fff5";
+                    ctx.font = "bold 20px 'Courier New'";
+                    ctx.textAlign = "left";
+                    ctx.fillText("SCORE: " + score, 30, 40);
+
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "14px 'Courier New'";
+                    ctx.fillText("🖱️ Move Mouse | Click to Jump", 330, 40);
+                }}
+
+                requestAnimationFrame(update);
+            }}
+
+            update();
+        </script>
+    </body>
+    </html>
+    """
+    
+    components.html(game_html, height=430)
