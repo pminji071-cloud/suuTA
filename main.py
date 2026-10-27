@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **Space(2단 점프)**와 **Ctrl(숙이기)** 조작으로 날아오는 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **Space(2단 점프)**와 **Ctrl(숙이기)** 조작으로 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -134,11 +134,11 @@ with col_game:
             
             let obstacleX = 700;
             let obstacleWidth = 35;
-            let obstacleHeight = 50;
-            let obstacleY = 310;
+            let obstacleHeight = 45;
+            let obstacleY = 315;
             let obstacleSpeed = 6;
             let obstacleShape = "crystal";
-            let obstacleColor = "#6b21a8";
+            let obstacleColor = "#f43f5e";
             
             let score = 0;
             let isPaused = false;
@@ -147,17 +147,18 @@ with col_game:
             let countdownValue = 3;
             let countdownTimer = null;
 
+            // 가독성이 좋은 선명한 악당 컬러 및 모양 팔레트
             const caligoShapes = ["crystal", "spike", "core", "blade"];
-            const caligoColors = ["#6b21a8", "#581c87", "#9f1239", "#1e1b4b", "#312e81", "#881337"];
+            const caligoColors = ["#f43f5e", "#ec4899", "#a855f7", "#38bdf8", "#fbbf24", "#34d399"];
 
             function resetObstacle() {
-                obstacleWidth = Math.floor(25 + Math.random() * 35);
-                obstacleHeight = Math.floor(30 + Math.random() * 45);
-                obstacleSpeed = 5 + Math.random() * 6;
+                obstacleWidth = Math.floor(25 + Math.random() * 30);
+                obstacleHeight = Math.floor(30 + Math.random() * 40);
+                obstacleSpeed = 5 + Math.random() * 5;
 
                 const isAir = Math.random() < 0.35;
                 if (isAir) {
-                    obstacleY = 220 + Math.random() * 45;
+                    obstacleY = 225 + Math.random() * 40;
                 } else {
                     obstacleY = 360 - obstacleHeight;
                 }
@@ -280,7 +281,7 @@ with col_game:
                 ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
                 ctx.lineWidth = 3;
                 ctx.shadowColor = "SKIN_COLOR_PLACEHOLDER";
-                ctx.shadowBlur = 4;
+                ctx.shadowBlur = 6;
 
                 let scale = crouching ? 65 : 110;
                 let offsetY = crouching ? 35 : 0;
@@ -310,7 +311,7 @@ with col_game:
                         if ([11,12,13,14,15,16,23,24,25,26,27,28].indexOf(idx) !== -1 && lm.visibility > 0.3) {
                             ctx.beginPath();
                             ctx.arc(x + (lm.x - 0.5) * scale, offsetY + y + (lm.y - 0.5) * scale, 4, 0, Math.PI * 2);
-                            ctx.fillStyle = "#e2e8f0";
+                            ctx.fillStyle = "#ffffff";
                             ctx.fill();
                             ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
                         }
@@ -324,10 +325,11 @@ with col_game:
                 ctx.shadowBlur = 0;
             }
 
+            // 장애물이 잘 보이도록 밝은 네온 테두리 및 빛 효과 추가
             function drawObstacle() {
                 ctx.fillStyle = obstacleColor;
-                ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
-                ctx.shadowBlur = 6;
+                ctx.shadowColor = "#ffffff";
+                ctx.shadowBlur = 12; // 빛나는 아우라 효과
 
                 if (obstacleShape === "crystal") {
                     ctx.beginPath();
@@ -349,9 +351,9 @@ with col_game:
                     ctx.beginPath();
                     ctx.arc(obstacleX + radius, obstacleY + radius, radius, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.fillStyle = "#94a3b8";
+                    ctx.fillStyle = "#ffffff";
                     ctx.beginPath();
-                    ctx.arc(obstacleX + radius, obstacleY + radius, radius * 0.4, 0, Math.PI * 2);
+                    ctx.arc(obstacleX + radius, obstacleY + radius, radius * 0.35, 0, Math.PI * 2);
                     ctx.fill();
                 } else if (obstacleShape === "blade") {
                     let cx = obstacleX + obstacleWidth / 2;
@@ -368,6 +370,19 @@ with col_game:
                     ctx.lineTo(cx - size * 0.5, cy - size * 0.5);
                     ctx.closePath();
                     ctx.fill();
+                }
+
+                // 선명한 테두리 추가로 가독성 극대화
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 2;
+                if (obstacleShape === "crystal") {
+                    ctx.beginPath();
+                    ctx.moveTo(obstacleX + obstacleWidth / 2, obstacleY);
+                    ctx.lineTo(obstacleX + obstacleWidth, obstacleY + obstacleHeight * 0.4);
+                    ctx.lineTo(obstacleX + obstacleWidth / 2, obstacleY + obstacleHeight);
+                    ctx.lineTo(obstacleX, obstacleY + obstacleHeight * 0.4);
+                    ctx.closePath();
+                    ctx.stroke();
                 }
                 ctx.shadowBlur = 0;
             }
@@ -494,14 +509,23 @@ with col_game:
                             score += 100;
                         }
 
+                        // 정밀 충돌 판정 (캐릭터 중심 좌표와 장애물 박스가 겹치는지 엄격하게 검사)
                         let charCurrentY = charBaseY + jumpHeight;
                         let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 45;
-                        
+                        let charLeft = charX - 15;
+                        let charRight = charX + 15;
+
+                        let obsLeft = obstacleX;
+                        let obsRight = obstacleX + obstacleWidth;
+                        let obsTop = obstacleY;
+                        let obsBottom = obstacleY + obstacleHeight;
+
+                        // AABB 충돌 감지 공식 적용
                         if (
-                            obstacleX < charX + 15 &&
-                            obstacleX + obstacleWidth > charX - 15 &&
-                            charCurrentY > obstacleY &&
-                            charHeadY < obstacleY + obstacleHeight
+                            charRight > obsLeft &&
+                            charLeft < obsRight &&
+                            charCurrentY > obsTop &&
+                            charHeadY < obsBottom
                         ) {
                             isGameOver = true;
                         }
