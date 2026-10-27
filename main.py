@@ -35,13 +35,12 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **Python AI가 관절(Landmarks)을 정밀 스캔**하여 관절 캐릭터를 즉시 생성합니다!")
+    st.info("사진을 올리면 **Python AI가 관절(Landmarks)을 정밀 스캔**하여 바닥에 밀착된 관절 캐릭터를 생성합니다!")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
         img_array = np.array(image)
         
-        # 파이썬 MediaPipe 연산 수행
         with mp_pose.Pose(static_image_mode=True, model_complexity=1) as pose:
             results = pose.process(img_array)
             if results.pose_landmarks:
@@ -49,7 +48,7 @@ with col_panel:
                 for lm in results.pose_landmarks.landmark:
                     lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
                 landmarks_json = json.dumps(lm_list)
-                st.success("✨ 3D 관절 스캔 완료! 아바타가 게임 스테이지에 등장했습니다.")
+                st.success("✨ 3D 관절 스캔 완료! 아바타가 바닥에 밀착되었습니다.")
             else:
                 st.warning("⚠️ 사진에서 관절을 감지하지 못해 기본 관절 캐릭터로 등록되었습니다.")
         
@@ -102,8 +101,9 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            let charY = 220;
-            let targetY = 220;
+            // 바닥선 기준(Y=360)에 캐릭터 발이 정확히 닿도록 초기 Y값 조정
+            let charY = 320;
+            let targetY = 320;
             let isJumping = false;
             let jumpVelocity = 0;
             let jumpHeight = 0;
@@ -114,15 +114,16 @@ with col_game:
                 if (!hasImage) return;
                 const rect = canvas.getBoundingClientRect();
                 targetY = e.clientY - rect.top;
-                if(targetY < 60) targetY = 60;
-                if(targetY > 280) targetY = 280;
+                // 바닥 영역(Y: 150 ~ 320) 내에서만 마우스 조종 허용
+                if(targetY < 150) targetY = 150;
+                if(targetY > 320) targetY = 320;
             });
 
             canvas.addEventListener("click", function() {
                 if (!hasImage) return;
                 if (!isJumping) {
                     isJumping = true;
-                    jumpVelocity = -12;
+                    jumpVelocity = -13;
                 }
             });
 
@@ -141,7 +142,6 @@ with col_game:
                 if (landmarks && landmarks.length > 0) {
                     const scale = 110;
                     
-                    // 1. 관절 뼈대 연결선
                     POSE_CONNECTIONS.forEach(function(pair) {
                         const i = pair[0];
                         const j = pair[1];
@@ -155,7 +155,6 @@ with col_game:
                         }
                     });
 
-                    // 2. 머리
                     const nose = landmarks[0];
                     if (nose) {
                         ctx.beginPath();
@@ -163,7 +162,6 @@ with col_game:
                         ctx.fill();
                     }
 
-                    // 3. 주요 관절 포인트 마커
                     landmarks.forEach(function(lm, idx) {
                         if ([11,12,13,14,15,16,23,24,25,26,27,28].indexOf(idx) !== -1 && lm.visibility > 0.3) {
                             ctx.beginPath();
@@ -174,7 +172,6 @@ with col_game:
                         }
                     });
                 } else {
-                    // 기본 관절 캐릭터 렌더링
                     ctx.beginPath(); ctx.arc(x, y - 30, 12, 0, Math.PI * 2); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(x, y - 18); ctx.lineTo(x, y + 15); ctx.stroke();
                     ctx.beginPath(); ctx.moveTo(x - 15, y - 8); ctx.lineTo(x + 15, y - 8); ctx.stroke();
@@ -193,6 +190,7 @@ with col_game:
                     ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
                 }
 
+                // 바닥선 (Y = 360)
                 ctx.strokeStyle = "#ff007f";
                 ctx.lineWidth = 5;
                 ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(650, 360); ctx.stroke();
@@ -223,6 +221,7 @@ with col_game:
                         score += 100;
                     }
 
+                    // 장애물 (바닥에 밀착)
                     ctx.fillStyle = "#ffdd59";
                     ctx.shadowColor = "#ffdd59";
                     ctx.shadowBlur = 10;
@@ -239,7 +238,7 @@ with col_game:
 
                     ctx.fillStyle = "#ffffff";
                     ctx.font = "14px 'Courier New'";
-                    ctx.fillText("🕹️ Move Mouse | Click to Jump", 330, 40);
+                    ctx.fillText("🖱️ Move Mouse | Click to Jump", 330, 40);
                 }
 
                 requestAnimationFrame(update);
