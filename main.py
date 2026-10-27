@@ -185,12 +185,10 @@ with col_game:
             let obstacleShape = "crystal";
             let obstacleColor = "#ff9aa2";
 
-            // ⭐ 별 아이템 변수 선언 (랜덤 등장, 가끔씩만 생성)
             let starX = -200;
             let starY = 300;
-            let starSize = 25;
             let starActive = false;
-            let starEffectTimer = 0; // 별을 먹었을 때 텍스트 효과 표시용
+            let starEffectTimer = 0;
 
             let score = 0;
             let isPaused = false;
@@ -198,6 +196,12 @@ with col_game:
             let isCountdown = false;
             let countdownValue = 3;
             let countdownTimer = null;
+
+            // ⭐ 특정 점수 축하 모션 관련 변수
+            let celebrationText = "";
+            let celebrationTimer = 0;
+            const targetMilestones = [1000, 2000, 5000, 7777, 10000];
+            let achievedMilestones = {};
 
             const caligoShapes = ["crystal", "spike", "core", "blade"];
             const caligoColors = ["#ff9aa2", "#ffb7b2", "#ffdac1", "#e2f0cb", "#b5ead7", "#c7ceea"];
@@ -236,12 +240,10 @@ with col_game:
                 obstacleShape = caligoShapes[Math.floor(Math.random() * caligoShapes.length)];
                 obstacleColor = caligoColors[Math.floor(Math.random() * caligoColors.length)];
 
-                // ⭐ 장애물이 리셋될 때 25% 확률로 아주 가끔씩만 별 생성 (자주 안 나오게 조절)
                 if (!starActive && Math.random() < 0.25) {
                     starActive = true;
                     starX = 1100 + Math.random() * 300;
-                    // 점프해서 먹거나 숙여서 피하는 위치 등 랜덤 배치
-                    starY = Math.random() < 0.5 ? 330 : 450; 
+                    starY = Math.random() < 0.5 ? 320 : 450; 
                 }
             }
 
@@ -281,6 +283,7 @@ with col_game:
                     isGameOver = false;
                     score = 0;
                     starActive = false;
+                    achievedMilestones = {};
                     resetObstacle();
                     jumpHeight = 0;
                     jumpCount = 0;
@@ -295,6 +298,7 @@ with col_game:
                     else if (mouseX >= 450 && mouseX <= 650 && mouseY >= 320 && mouseY <= 360) {
                         score = 0;
                         starActive = false;
+                        achievedMilestones = {};
                         resetObstacle();
                         jumpHeight = 0;
                         jumpCount = 0;
@@ -318,6 +322,7 @@ with col_game:
                         isGameOver = false;
                         score = 0;
                         starActive = false;
+                        achievedMilestones = {};
                         resetObstacle();
                         jumpHeight = 0;
                         jumpCount = 0;
@@ -406,14 +411,12 @@ with col_game:
                 ctx.shadowBlur = 0;
             }
 
-            // ⭐ 캔버스에 예쁜 별 그리기 함수
             function drawStar(cx, cy, spikes, outerRadius, innerRadius) {
                 let rot = (Math.PI / 2) * 3;
                 let x = cx;
                 let y = cy;
                 let step = Math.PI / spikes;
 
-                ctx.strokedStyle = "#ffd700";
                 ctx.fillStyle = "#ffdf00";
                 ctx.shadowColor = "#ffdf00";
                 ctx.shadowBlur = 15;
@@ -598,17 +601,24 @@ with col_game:
                         obstacleX -= obstacleSpeed;
                         if (obstacleX < -60) {
                             resetObstacle();
-                            score += 100; // 기본 점수 획득
+                            score += 100;
                         }
 
-                        // ⭐ 별 움직임 및 충돌(획득) 체크
+                        // ⭐ 특정 마일스톤 점수 도달 체크 및 축하 모션 발동
+                        targetMilestones.forEach(m => {
+                            if (score >= m && !achievedMilestones[m]) {
+                                achievedMilestones[m] = true;
+                                celebrationText = "🎉 " + m + "점 돌파! 대단해요! 🎉";
+                                celebrationTimer = 90; // 약 1.5초 동안 화려하게 표시
+                            }
+                        });
+
                         if (starActive) {
                             starX -= obstacleSpeed;
                             if (starX < -50) {
                                 starActive = false;
                             }
 
-                            // 캐릭터와 별의 충돌 판정
                             let charCurrentY = charBaseY + jumpHeight;
                             let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 50;
                             let charLeft = charX - 14;
@@ -620,10 +630,9 @@ with col_game:
                                 charCurrentY > starY - 15 &&
                                 charHeadY < starY + 15
                             ) {
-                                // 별 획득! 점수 2배(추가 100점 더해줌)
                                 score += 100; 
                                 starActive = false;
-                                starEffectTimer = 30; // 텍스트 효과 지속 프레임
+                                starEffectTimer = 30;
                             }
                         }
 
@@ -647,14 +656,12 @@ with col_game:
                         }
                     }
 
-                    // 장애물 및 별 렌더링
                     drawObstacle();
 
                     if (starActive) {
                         drawStar(starX, starY, 5, 16, 8);
                     }
 
-                    // ⭐ 별을 먹었을 때 뜨는 "DOUBLE SCORE! 🌟" 효과 텍스트
                     if (starEffectTimer > 0) {
                         starEffectTimer--;
                         ctx.fillStyle = "#ffdf00";
@@ -663,6 +670,21 @@ with col_game:
                         ctx.shadowColor = "#ffdf00";
                         ctx.shadowBlur = 10;
                         ctx.fillText("🌟 BONUS x2 SCORE! 🌟", charX + 20, charBaseY + jumpHeight - 70);
+                        ctx.shadowBlur = 0;
+                    }
+
+                    // ⭐ 화려한 축하 모션 팝업 렌더링
+                    if (celebrationTimer > 0) {
+                        celebrationTimer--;
+                        ctx.fillStyle = "rgba(255, 218, 193, 0.25)";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height); // 화면 전체 은은한 오라
+
+                        ctx.fillStyle = "#ffdf00";
+                        ctx.font = "bold 32px 'Quicksand', sans-serif";
+                        ctx.textAlign = "center";
+                        ctx.shadowColor = "#ffb7b2";
+                        ctx.shadowBlur = 20;
+                        ctx.fillText(celebrationText, canvas.width / 2, 140);
                         ctx.shadowBlur = 0;
                     }
 
