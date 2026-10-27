@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import mediapipe as mp
 from PIL import Image, ImageDraw
+import io
 import random
 
 # 1. 페이지 설정 및 밝고 화사한 아케이드 게임 스타일 CSS 주입
@@ -80,7 +81,10 @@ if uploaded_file is None:
     st.info("👈 플레이어님! 인물 사진을 업로드하면 전신 3D 관절 모션 트래킹 분석이 시작됩니다.")
 else:
     selected_color = color_dict[color_mode]
-    image = Image.open(uploaded_file).convert("RGB")
+    
+    # 이미지 바이너리 데이터를 안전하게 읽어와서 PIL 이미지로 변환
+    image_bytes = uploaded_file.read()
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     width, height = image.size
     img_array = np.array(image)
 
