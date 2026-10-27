@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **2번 연속 점프(2단 점프)**와 **Ctrl 키** 숙이기로 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **1,000점마다 배경(우주·산·바다·하늘·행성·성 등)이 자동으로 바뀝니다.** Space 2단점프와 Ctrl 숙이기로 장애물을 피하세요.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -126,7 +126,6 @@ with col_game:
             let charBaseY = 320;
             let charX = 120;
             
-            // 점프 및 2단 점프 관련 변수
             let jumpCount = 0;
             const maxJumps = 2;
             let isCrouching = false;
@@ -184,13 +183,12 @@ with col_game:
                 }, 1000);
             }
 
-            // 2단 점프 통합 트리거 함수
             function triggerJump() {
                 if (!hasImage || isPaused || isCountdown || isGameOver || isCrouching) return;
                 
                 if (jumpCount < maxJumps) {
                     jumpCount++;
-                    jumpVelocity = -12; // 점프 힘
+                    jumpVelocity = -12;
                 }
             }
 
@@ -361,15 +359,73 @@ with col_game:
                 ctx.shadowBlur = 0;
             }
 
+            // 1,000점 단위로 배경 테마를 다르게 그려주는 함수
+            function drawDynamicBackground(themeLevel) {
+                if (themeLevel === 0) {
+                    // 0 ~ 999점: 🌌 우주 (Space) 배경
+                    ctx.fillStyle = "#0f172a";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(100, 80, 2, 2); ctx.fillRect(300, 50, 3, 3); ctx.fillRect(500, 120, 2, 2);
+                    ctx.fillRect(200, 200, 2, 2); ctx.fillRect(450, 250, 3, 3); ctx.fillRect(600, 80, 2, 2);
+                } else if (themeLevel === 1) {
+                    // 1,000 ~ 1,999점: ⛰️ 산 (Mountain) 배경
+                    ctx.fillStyle = "#1e293b";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = "#334155";
+                    ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(150, 200); ctx.lineTo(350, 360); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(250, 360); ctx.lineTo(450, 150); ctx.lineTo(650, 360); ctx.fill();
+                } else if (themeLevel === 2) {
+                    // 2,000 ~ 2,999점: 🌊 바다 (Ocean) 배경
+                    let gradient = ctx.createLinearGradient(0, 0, 0, 360);
+                    gradient.addColorStop(0, "#0284c7");
+                    gradient.addColorStop(1, "#0369a1");
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+                    ctx.fillRect(0, 100, 650, 5); ctx.fillRect(0, 220, 650, 8);
+                } else if (themeLevel === 3) {
+                    // 3,000 ~ 3,999점: ☁️ 하늘 (Sky) 배경
+                    let gradient = ctx.createLinearGradient(0, 0, 0, 360);
+                    gradient.addColorStop(0, "#38bdf8");
+                    gradient.addColorStop(1, "#bae6fd");
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+                    ctx.beginPath(); ctx.arc(150, 100, 30, 0, Math.PI * 2); ctx.arc(180, 90, 40, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(450, 150, 25, 0, Math.PI * 2); ctx.arc(475, 140, 35, 0, Math.PI * 2); ctx.fill();
+                } else if (themeLevel === 4) {
+                    // 4,000 ~ 4,999점: 🪐 행성 (Planet) 배경
+                    ctx.fillStyle = "#31103f";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = "#f43f5e";
+                    ctx.beginPath(); ctx.arc(520, 110, 50, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+                    ctx.lineWidth = 6;
+                    ctx.beginPath(); ctx.ellipse(520, 110, 80, 25, 0.3, 0, Math.PI * 2); ctx.stroke();
+                } else {
+                    // 5,000점 이상: 🏰 성 (Castle) 배경
+                    let gradient = ctx.createLinearGradient(0, 0, 0, 360);
+                    gradient.addColorStop(0, "#475569");
+                    gradient.addColorStop(1, "#0f172a");
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = "#1e293b";
+                    ctx.fillRect(80, 220, 70, 140); ctx.fillRect(500, 200, 80, 160);
+                    ctx.fillStyle = "#f59e0b"; // 성 창문 불빛
+                    ctx.fillRect(100, 250, 15, 25); ctx.fillRect(125, 250, 15, 25);
+                    ctx.fillRect(530, 230, 20, 30);
+                }
+            }
+
             function update() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                ctx.strokeStyle = "#16213e";
-                ctx.lineWidth = 1;
-                for(let i=0; i<canvas.width; i+=40) {
-                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
-                }
+                // 점수 기반 테마 레벨 계산 (1000점마다 1단계씩 증가, 최대 5단계 순환)
+                let themeLevel = Math.floor(score / 1000) % 6;
+                drawDynamicBackground(themeLevel);
 
+                // 바닥선
                 ctx.strokeStyle = "#ff007f";
                 ctx.lineWidth = 5;
                 ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(650, 360); ctx.stroke();
@@ -384,12 +440,10 @@ with col_game:
                     ctx.fillText("Upload a photo on the right panel to start game!", canvas.width / 2, canvas.height / 2 + 20);
                 } else {
                     if (!isPaused && !isCountdown && !isGameOver) {
-                        // 점프 및 중력 물리 연산
                         if (jumpCount > 0) {
                             jumpHeight += jumpVelocity;
-                            jumpVelocity += 0.75; // 중력
+                            jumpVelocity += 0.75;
                             
-                            // 바닥에 착지했을 때
                             if (jumpHeight >= 0) {
                                 jumpHeight = 0;
                                 jumpCount = 0;
@@ -421,14 +475,16 @@ with col_game:
                     let renderY = charBaseY + jumpHeight;
                     drawPoseCharacter(charX, renderY, poseLandmarks, isCrouching);
 
-                    ctx.fillStyle = "#00fff5";
-                    ctx.font = "bold 15px 'Courier New'";
+                    // UI 테마 이름 표시
+                    const themeNames = ["🌌 우주 테마", "⛰️ 산 테마", "🌊 바다 테마", "☁️ 하늘 테마", "🪐 행성 테마", "🏰 성 테마"];
+                    ctx.fillStyle = "#ff007f";
+                    ctx.font = "bold 14px 'Courier New'";
                     ctx.textAlign = "left";
-                    ctx.fillText("SCORE: " + score, 20, 35);
+                    ctx.fillText("SCORE: " + score + " [" + themeNames[themeLevel] + "]", 20, 35);
 
                     ctx.fillStyle = "#ffffff";
                     ctx.font = "11px 'Courier New'";
-                    ctx.fillText("⌨️ Space(x2):2단점프 | Ctrl:숙이기 | ESC:일시정지", 195, 35);
+                    ctx.fillText("⌨️ Space(x2):2단점프 | Ctrl:숙이기 | ESC:일시정지", 200, 35);
 
                     if (isGameOver) {
                         ctx.fillStyle = "rgba(15, 52, 96, 0.9)";
