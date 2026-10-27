@@ -16,7 +16,7 @@ if "saved_avatars" not in st.session_state:
 mp_pose = mp.solutions.pose
 
 # 2. 레이아웃 분할 (왼쪽: 대화면 게임 / 오른쪽: 컨트롤 및 보관함 패널)
-col_game, col_panel = st.columns([3, 1])
+col_game, col_panel = st.columns([3.5, 1])
 
 landmarks_json = "null"
 
@@ -107,8 +107,8 @@ with col_game:
     </head>
     <body>
         <div class="game-container">
-            <!-- 대화면으로 확대된 게임 캔버스 (900x480) -->
-            <canvas id="gameCanvas" width="900" height="480"></canvas>
+            <!-- 가로 1100, 세로 580으로 대폭 확장된 와이드 대화면 캔버스 -->
+            <canvas id="gameCanvas" width="1100" height="580"></canvas>
         </div>
 
         <script>
@@ -118,8 +118,8 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            let charBaseY = 400;
-            let charX = 150;
+            let charBaseY = 490;
+            let charX = 180;
             
             let jumpCount = 0;
             const maxJumps = 2;
@@ -127,10 +127,10 @@ with col_game:
             let jumpVelocity = 0;
             let jumpHeight = 0;
             
-            let obstacleX = 950;
+            let obstacleX = 1150;
             let obstacleWidth = 40;
             let obstacleHeight = 55;
-            let obstacleY = 390;
+            let obstacleY = 475;
             let obstacleSpeed = 5;
             let obstacleShape = "crystal";
             let obstacleColor = "#f43f5e";
@@ -170,12 +170,12 @@ with col_game:
 
                 const isAir = Math.random() < 0.35;
                 if (isAir) {
-                    obstacleY = 280 + Math.random() * 50;
+                    obstacleY = 340 + Math.random() * 60;
                 } else {
-                    obstacleY = 440 - obstacleHeight;
+                    obstacleY = 530 - obstacleHeight;
                 }
 
-                obstacleX = 900 + Math.random() * 400;
+                obstacleX = 1100 + Math.random() * 400;
                 obstacleShape = caligoShapes[Math.floor(Math.random() * caligoShapes.length)];
                 obstacleColor = caligoColors[Math.floor(Math.random() * caligoColors.length)];
             }
@@ -201,7 +201,7 @@ with col_game:
                 
                 if (jumpCount < maxJumps) {
                     jumpCount++;
-                    jumpVelocity = -13;
+                    jumpVelocity = -14;
                 }
             }
 
@@ -223,10 +223,10 @@ with col_game:
                 }
 
                 if (isPaused) {
-                    if (mouseX >= 350 && mouseX <= 550 && mouseY >= 250 && mouseY <= 290) {
+                    if (mouseX >= 450 && mouseX <= 650 && mouseY >= 280 && mouseY <= 320) {
                         startCountdown();
                     }
-                    else if (mouseX >= 350 && mouseX <= 550 && mouseY >= 310 && mouseY <= 350) {
+                    else if (mouseX >= 450 && mouseX <= 650 && mouseY >= 340 && mouseY <= 380) {
                         score = 0;
                         resetObstacle();
                         jumpHeight = 0;
@@ -399,7 +399,7 @@ with col_game:
 
             function drawGorgeousBackground(themeLevel) {
                 if (themeLevel === 0) {
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 440);
+                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 580);
                     bgGrad.addColorStop(0, "#090d16");
                     bgGrad.addColorStop(0.5, "#1e1b4b");
                     bgGrad.addColorStop(1, "#172554");
@@ -407,10 +407,10 @@ with col_game:
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     ctx.fillStyle = "rgba(226, 232, 240, 0.4)";
-                    let stars = [ [70,50], [180,100], [330,40], [450,130], [560,70], [680,150], [820,55], [100,210], [400,260], [650,220] ];
+                    let stars = [ [70,50], [180,100], [330,40], [450,130], [560,70], [680,150], [820,55], [100,210], [400,260], [650,220], [900,90], [1000,180] ];
                     stars.forEach(s => { ctx.fillRect(s[0], s[1], 2, 2); });
                 } else if (themeLevel === 1) {
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 440);
+                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 580);
                     bgGrad.addColorStop(0, "#25316d");
                     bgGrad.addColorStop(0.5, "#57417e");
                     bgGrad.addColorStop(1, "#b57186");
@@ -418,9 +418,9 @@ with col_game:
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     ctx.fillStyle = "rgba(15, 23, 42, 0.3)";
-                    ctx.fillRect(0, 300, 900, 140);
+                    ctx.fillRect(0, 380, 1100, 200);
                 } else if (themeLevel === 2) {
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 440);
+                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 580);
                     bgGrad.addColorStop(0, "#1d4ed8");
                     bgGrad.addColorStop(0.5, "#f59e0b");
                     bgGrad.addColorStop(1, "#b45309");
@@ -429,47 +429,47 @@ with col_game:
 
                     ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
                     ctx.beginPath();
-                    ctx.arc(150, 200, 60, 0, Math.PI * 2);
-                    ctx.arc(210, 180, 80, 0, Math.PI * 2);
-                    ctx.arc(270, 205, 55, 0, Math.PI * 2);
+                    ctx.arc(150, 240, 60, 0, Math.PI * 2);
+                    ctx.arc(210, 220, 80, 0, Math.PI * 2);
+                    ctx.arc(270, 245, 55, 0, Math.PI * 2);
                     ctx.fill();
 
                     ctx.beginPath();
-                    ctx.arc(680, 240, 70, 0, Math.PI * 2);
-                    ctx.arc(760, 215, 90, 0, Math.PI * 2);
+                    ctx.arc(850, 280, 70, 0, Math.PI * 2);
+                    ctx.arc(930, 255, 90, 0, Math.PI * 2);
                     ctx.fill();
                 } else if (themeLevel === 3) {
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 440);
+                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 580);
                     bgGrad.addColorStop(0, "#0369a1");
                     bgGrad.addColorStop(1, "#0c4a6e");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-                    ctx.beginPath(); ctx.arc(250, 280, 160, Math.PI, 0, false); ctx.fill();
-                    ctx.beginPath(); ctx.arc(700, 320, 200, Math.PI, 0, false); ctx.fill();
+                    ctx.beginPath(); ctx.arc(250, 360, 160, Math.PI, 0, false); ctx.fill();
+                    ctx.beginPath(); ctx.arc(850, 400, 200, Math.PI, 0, false); ctx.fill();
                 } else if (themeLevel === 4) {
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 440);
+                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 580);
                     bgGrad.addColorStop(0, "#18181b");
                     bgGrad.addColorStop(1, "#3f3f46");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     ctx.fillStyle = "#52525b";
-                    ctx.beginPath(); ctx.arc(720, 120, 70, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(900, 140, 70, 0, Math.PI * 2); ctx.fill();
                     ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
                     ctx.lineWidth = 6;
-                    ctx.beginPath(); ctx.ellipse(720, 120, 115, 30, 0.3, 0, Math.PI * 2); ctx.stroke();
+                    ctx.beginPath(); ctx.ellipse(900, 140, 115, 30, 0.3, 0, Math.PI * 2); ctx.stroke();
                 } else {
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 440);
+                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 580);
                     bgGrad.addColorStop(0, "#020617");
                     bgGrad.addColorStop(1, "#0f172a");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     ctx.fillStyle = "#1e293b";
-                    ctx.fillRect(80, 220, 120, 220);
-                    ctx.fillRect(680, 180, 140, 260);
+                    ctx.fillRect(80, 300, 120, 280);
+                    ctx.fillRect(850, 240, 140, 340);
                 }
             }
 
@@ -481,7 +481,7 @@ with col_game:
 
                 ctx.strokeStyle = "#475569";
                 ctx.lineWidth = 4;
-                ctx.beginPath(); ctx.moveTo(0, 440); ctx.lineTo(900, 440); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 530); ctx.lineTo(1100, 530); ctx.stroke();
 
                 if (!hasImage) {
                     ctx.fillStyle = "#f43f5e";
@@ -539,28 +539,28 @@ with col_game:
                     ctx.fillStyle = "#e2e8f0";
                     ctx.font = "bold 14px 'Courier New'";
                     ctx.textAlign = "left";
-                    ctx.fillText("SCORE: " + score + " [" + themeNames[themeLevel] + "]", 20, 35);
+                    ctx.fillText("SCORE: " + score + " [" + themeNames[themeLevel] + "]", 25, 40);
 
                     ctx.fillStyle = "#94a3b8";
                     ctx.font = "12px 'Courier New'";
-                    ctx.fillText("⌨️ Space(x2):2단점프 | Ctrl:숙이기 | ESC:일시정지", 380, 35);
+                    ctx.fillText("⌨️ Space(x2):2단점프 | Ctrl:숙이기 | ESC:일시정지", 450, 40);
 
                     if (isGameOver) {
                         ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                         ctx.fillStyle = "#f43f5e";
-                        ctx.font = "bold 36px 'Courier New'";
+                        ctx.font = "bold 40px 'Courier New'";
                         ctx.textAlign = "center";
-                        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 25);
+                        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
 
                         ctx.fillStyle = "#38bdf8";
-                        ctx.font = "18px 'Courier New'";
+                        ctx.font = "20px 'Courier New'";
                         ctx.fillText("Final Score: " + score, canvas.width / 2, canvas.height / 2 + 15);
 
                         ctx.fillStyle = "#94a3b8";
-                        ctx.font = "15px 'Courier New'";
-                        ctx.fillText("Click or Space to restart", canvas.width / 2, canvas.height / 2 + 60);
+                        ctx.font = "16px 'Courier New'";
+                        ctx.fillText("Click or Space to restart", canvas.width / 2, canvas.height / 2 + 70);
                     }
 
                     if (isPaused) {
@@ -568,20 +568,20 @@ with col_game:
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                         ctx.fillStyle = "#f43f5e";
-                        ctx.font = "bold 30px 'Courier New'";
+                        ctx.font = "bold 34px 'Courier New'";
                         ctx.textAlign = "center";
-                        ctx.fillText("GAME PAUSED", canvas.width / 2, 140);
+                        ctx.fillText("GAME PAUSED", canvas.width / 2, 170);
 
                         ctx.fillStyle = "#0284c7";
-                        ctx.fillRect(350, 250, 200, 40);
+                        ctx.fillRect(450, 280, 200, 40);
                         ctx.fillStyle = "#ffffff";
                         ctx.font = "bold 16px 'Courier New'";
-                        ctx.fillText("▶ 이어서 재생", canvas.width / 2, 275);
+                        ctx.fillText("▶ 이어서 재생", canvas.width / 2, 305);
 
                         ctx.fillStyle = "#475569";
-                        ctx.fillRect(350, 310, 200, 40);
+                        ctx.fillRect(450, 340, 200, 40);
                         ctx.fillStyle = "#ffffff";
-                        ctx.fillText("🔄 처음으로", canvas.width / 2, 335);
+                        ctx.fillText("🔄 처음으로", canvas.width / 2, 365);
                     }
 
                     if (isCountdown) {
@@ -589,16 +589,16 @@ with col_game:
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                         ctx.fillStyle = "#38bdf8";
-                        ctx.font = "bold 70px 'Courier New'";
+                        ctx.font = "bold 80px 'Courier New'";
                         ctx.textAlign = "center";
                         ctx.shadowColor = "#38bdf8";
-                        ctx.shadowBlur = 12;
-                        ctx.fillText(countdownValue, canvas.width / 2, canvas.height / 2 + 20);
+                        ctx.shadowBlur = 15;
+                        ctx.fillText(countdownValue, canvas.width / 2, canvas.height / 2 + 25);
                         ctx.shadowBlur = 0;
 
                         ctx.fillStyle = "#94a3b8";
-                        ctx.font = "18px 'Courier New'";
-                        ctx.fillText("GET READY...", canvas.width / 2, canvas.height / 2 - 60);
+                        ctx.font = "20px 'Courier New'";
+                        ctx.fillText("GET READY...", canvas.width / 2, canvas.height / 2 - 70);
                     }
                 }
 
@@ -615,4 +615,4 @@ with col_game:
     game_html = game_html.replace("LANDMARKS_DATA_PLACEHOLDER", landmarks_json)
     game_html = game_html.replace("SKIN_COLOR_PLACEHOLDER", skin_color)
 
-    components.html(game_html, height=510)
+    components.html(game_html, height=610)
