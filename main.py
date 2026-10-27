@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **600점→1200점→1800점→2200점 이후 400점마다** 가속됩니다. Space 2단점프와 Ctrl 숙이기로 생존하세요!")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **정밀 피격 판정**이 적용되어 더욱 쾌적하게 플레이할 수 있습니다. Space 2단점프와 Ctrl 숙이기로 생존하세요!")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -150,7 +150,6 @@ with col_game:
             const caligoShapes = ["crystal", "spike", "core", "blade"];
             const caligoColors = ["#f43f5e", "#ec4899", "#a855f7", "#38bdf8", "#fbbf24", "#34d399"];
 
-            // 600 -> 1200 -> 1800 -> 2200 이후 400점마다 가속
             function calculateSpeed() {
                 let base = 4.5 + Math.random() * 1.5;
                 
@@ -525,15 +524,17 @@ with col_game:
                             score += 100;
                         }
 
+                        // 정밀 최적화된 피격 판정 (슬림한 히트박스 적용으로 억울한 죽음 방지)
                         let charCurrentY = charBaseY + jumpHeight;
-                        let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 45;
-                        let charLeft = charX - 15;
-                        let charRight = charX + 15;
+                        let charHeadY = isCrouching ? charCurrentY - 15 : charCurrentY - 40;
+                        let charLeft = charX - 10;
+                        let charRight = charX + 10;
 
-                        let obsLeft = obstacleX;
-                        let obsRight = obstacleX + obstacleWidth;
-                        let obsTop = obstacleY;
-                        let obsBottom = obstacleY + obstacleHeight;
+                        // 장애물 충돌 영역에 약간의 여유 공간(패딩) 부여
+                        let obsLeft = obstacleX + 4;
+                        let obsRight = obstacleX + obstacleWidth - 4;
+                        let obsTop = obstacleY + 4;
+                        let obsBottom = obstacleY + obstacleHeight - 4;
 
                         if (
                             charRight > obsLeft &&
