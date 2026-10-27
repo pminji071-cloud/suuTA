@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **칼레이도스코프급 엄격한 충돌 판정**이 적용되었습니다. Space 2단점프와 Ctrl 숙이기로 생존하세요!")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **보내주신 사진들의 감성을 담은 고화질 테마 배경**이 점수대별로 펼쳐집니다. Space 2단점프와 Ctrl 숙이기로 생존하세요!")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -402,73 +402,99 @@ with col_game:
                 ctx.shadowBlur = 0;
             }
 
+            // 보내주신 사진들의 감성을 그대로 재현한 고화질 실사풍 배경 렌더링 함수
             function drawGorgeousBackground(themeLevel) {
                 if (themeLevel === 0) {
+                    // [테마 0: 우주 성운] 보내주신 파란색/보라색 찬란한 성운과 별무리 사진 감성
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
-                    bgGrad.addColorStop(0, "#090d16");
-                    bgGrad.addColorStop(0.5, "#1e1b4b");
-                    bgGrad.addColorStop(1, "#172554");
+                    bgGrad.addColorStop(0, "#0b0c2a");
+                    bgGrad.addColorStop(0.5, "#2b0d4f");
+                    bgGrad.addColorStop(1, "#111827");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "rgba(226, 232, 240, 0.4)";
-                    let stars = [ [50,40], [120,90], [230,30], [340,110], [420,60], [510,130], [600,45], [80,180], [290,220], [480,190] ];
-                    stars.forEach(s => { ctx.fillRect(s[0], s[1], 1.5, 1.5); });
+                    // 성운 코어 빛 번짐
+                    let nebulaGrad = ctx.createRadialGradient(450, 180, 20, 450, 180, 220);
+                    nebulaGrad.addColorStop(0, "rgba(236, 72, 153, 0.35)");
+                    nebulaGrad.addColorStop(0.5, "rgba(59, 130, 246, 0.25)");
+                    nebulaGrad.addColorStop(1, "transparent");
+                    ctx.fillStyle = nebulaGrad;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // 반짝이는 별무리
+                    ctx.fillStyle = "#ffffff";
+                    let stars = [ [50,40], [120,90], [230,30], [340,110], [420,60], [510,130], [600,45], [80,180], [290,220], [480,190], [150,280], [380,310] ];
+                    stars.forEach(s => { ctx.fillRect(s[0], s[1], 2, 2); });
                 } else if (themeLevel === 1) {
+                    // [테마 1: 노을빛 호수와 부두] 보내주신 푸른 보랏빛 하늘과 잔잔한 물결, 나무 선착장 감성
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
-                    bgGrad.addColorStop(0, "#0f172a");
-                    bgGrad.addColorStop(1, "#1e293b");
+                    bgGrad.addColorStop(0, "#25316d");
+                    bgGrad.addColorStop(0.5, "#57417e");
+                    bgGrad.addColorStop(1, "#b57186");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "#1e293b";
-                    ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(120, 200); ctx.lineTo(280, 360); ctx.fill();
-                    ctx.beginPath(); ctx.moveTo(200, 360); ctx.lineTo(380, 150); ctx.lineTo(580, 360); ctx.fill();
-                    ctx.fillStyle = "#334155";
-                    ctx.beginPath(); ctx.moveTo(0, 360); ctx.lineTo(180, 240); ctx.lineTo(400, 360); ctx.fill();
-                    ctx.beginPath(); ctx.moveTo(350, 360); ctx.lineTo(520, 210); ctx.lineTo(650, 360); ctx.fill();
+                    // 잔잔한 수평선 및 물결 반사
+                    ctx.fillStyle = "rgba(15, 23, 42, 0.3)";
+                    ctx.fillRect(0, 240, 650, 120);
+
+                    // 선착장 실루엣 펜스
+                    ctx.strokeStyle = "rgba(30, 41, 59, 0.8)";
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 280); ctx.lineTo(180, 280);
+                    ctx.moveTo(30, 260); ctx.lineTo(30, 300);
+                    ctx.moveTo(90, 260); ctx.lineTo(90, 300);
+                    ctx.moveTo(150, 260); ctx.lineTo(150, 300);
+                    ctx.stroke();
                 } else if (themeLevel === 2) {
+                    // [테마 2: 몽환적인 구름 바다 (하늘 위 풍경)] 보내주신 황금빛 구름과 녹색 대지가 어우러진 하늘 위 뷰 감성
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
-                    bgGrad.addColorStop(0, "#0c4a6e");
-                    bgGrad.addColorStop(1, "#075985");
+                    bgGrad.addColorStop(0, "#1d4ed8");
+                    bgGrad.addColorStop(0.5, "#f59e0b");
+                    bgGrad.addColorStop(1, "#b45309");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
-                    ctx.beginPath(); ctx.arc(150, 250, 120, Math.PI, 0, false); ctx.fill();
-                    ctx.beginPath(); ctx.arc(480, 290, 160, Math.PI, 0, false); ctx.fill();
+                    // 대형 뭉게구름 군락
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+                    ctx.beginPath();
+                    ctx.arc(100, 180, 50, 0, Math.PI * 2);
+                    ctx.arc(150, 160, 65, 0, Math.PI * 2);
+                    ctx.arc(200, 185, 45, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.arc(480, 210, 60, 0, Math.PI * 2);
+                    ctx.arc(540, 190, 75, 0, Math.PI * 2);
+                    ctx.arc(600, 215, 50, 0, Math.PI * 2);
+                    ctx.fill();
                 } else if (themeLevel === 3) {
+                    // [테마 3: 심해 오션] 딥 블루 바다 테마
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
-                    bgGrad.addColorStop(0, "#451a03");
-                    bgGrad.addColorStop(0.6, "#78350f");
-                    bgGrad.addColorStop(1, "#292524");
+                    bgGrad.addColorStop(0, "#0369a1");
+                    bgGrad.addColorStop(1, "#0c4a6e");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-                    ctx.beginPath();
-                    ctx.arc(120, 140, 45, 0, Math.PI * 2);
-                    ctx.arc(165, 125, 55, 0, Math.PI * 2);
-                    ctx.arc(210, 145, 40, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    ctx.beginPath();
-                    ctx.arc(460, 180, 50, 0, Math.PI * 2);
-                    ctx.arc(510, 165, 60, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+                    ctx.beginPath(); ctx.arc(180, 220, 140, Math.PI, 0, false); ctx.fill();
+                    ctx.beginPath(); ctx.arc(500, 260, 180, Math.PI, 0, false); ctx.fill();
                 } else if (themeLevel === 4) {
+                    // [테마 4: 외계 행성과 오로라]
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#18181b");
-                    bgGrad.addColorStop(1, "#27272a");
+                    bgGrad.addColorStop(1, "#3f3f46");
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "#71717a";
-                    ctx.beginPath(); ctx.arc(500, 110, 65, 0, Math.PI * 2); ctx.fill();
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
-                    ctx.lineWidth = 4;
-                    ctx.beginPath(); ctx.ellipse(500, 110, 105, 30, 0.4, 0, Math.PI * 2); ctx.stroke();
+                    ctx.fillStyle = "#52525b";
+                    ctx.beginPath(); ctx.arc(520, 100, 60, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+                    ctx.lineWidth = 5;
+                    ctx.beginPath(); ctx.ellipse(520, 100, 95, 25, 0.3, 0, Math.PI * 2); ctx.stroke();
                 } else {
+                    // [테마 5: 판타지 요새 야경]
                     let bgGrad = ctx.createLinearGradient(0, 0, 0, 360);
                     bgGrad.addColorStop(0, "#020617");
                     bgGrad.addColorStop(1, "#0f172a");
@@ -524,7 +550,6 @@ with col_game:
                             score += 100;
                         }
 
-                        // 완벽하게 엄격하고 정확한 초정밀 픽셀 히트박스 적용 (살짝만 닿아도 바로 게임 오버)
                         let charCurrentY = charBaseY + jumpHeight;
                         let charHeadY = isCrouching ? charCurrentY - 18 : charCurrentY - 44;
                         let charLeft = charX - 12;
@@ -550,7 +575,7 @@ with col_game:
                     let renderY = charBaseY + jumpHeight;
                     drawPoseCharacter(charX, renderY, poseLandmarks, isCrouching);
 
-                    const themeNames = ["🌌 딥 우주", "⛰️ 밤 산맥", "🌊 밤 바다", "☁️ 노을 하늘", "🪐 외계 행성", "🏰 다크 요새"];
+                    const themeNames = ["🌌 성운 우주", "🌊 노을빛 호수", "☁️ 하늘 위 구름", "🌊 심해 오션", "🪐 외계 행성", "🏰 다크 요새"];
                     ctx.fillStyle = "#e2e8f0";
                     ctx.font = "bold 13px 'Courier New'";
                     ctx.textAlign = "left";
