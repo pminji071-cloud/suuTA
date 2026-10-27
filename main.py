@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭하여 점프**하며 랜덤 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭하여 점프**하며 다양한 모양의 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -129,12 +129,13 @@ with col_game:
             let jumpVelocity = 0;
             let jumpHeight = 0;
             
-            // 랜덤 장애물 속성 변수들
+            // 장애물 속성 (위치, 크기, 모양, 색상)
             let obstacleX = 700;
             let obstacleWidth = 35;
             let obstacleHeight = 50;
             let obstacleY = 310;
-            let obstacleSpeed = 6;
+            let obstacleShape = "rect"; // "rect", "circle", "triangle", "star"
+            let obstacleColor = "#ffdd59";
             
             let score = 0;
             let isPaused = false;
@@ -143,12 +144,18 @@ with col_game:
             let countdownValue = 3;
             let countdownTimer = null;
 
-            // 장애물 속성 랜덤 리셋 함수
+            const shapeList = ["rect", "circle", "triangle", "star"];
+            const colorList = ["#ffdd59", "#ff007f", "#00fff5", "#ff5722", "#9c27b0"];
+
+            // 장애물 속성(크기, 위치, 모양, 색상) 무작위 재설정
             function resetObstacle() {
-                obstacleX = 700 + Math.random() * 250; // 등장 간격도 랜덤 (700~950px 사이)
-                obstacleWidth = 25 + Math.random() * 25; // 너비 25~50px 랜덤
-                obstacleHeight = 35 + Math.random() * 35; // 높이 35~70px 랜덤
-                obstacleY = 360 - obstacleHeight; // 바닥(360)에 맞춤
+                obstacleX = 700 + Math.random() * 250;
+                obstacleWidth = 30 + Math.random() * 25;
+                obstacleHeight = 35 + Math.random() * 35;
+                obstacleY = 360 - obstacleHeight;
+                
+                obstacleShape = shapeList[Math.floor(Math.random() * shapeList.length)];
+                obstacleColor = colorList[Math.floor(Math.random() * colorList.length)];
             }
 
             function startCountdown() {
@@ -271,6 +278,42 @@ with col_game:
                 ctx.shadowBlur = 0;
             }
 
+            // 모양별 장애물 렌더링 함수
+            function drawObstacle() {
+                ctx.fillStyle = obstacleColor;
+                ctx.shadowColor = obstacleColor;
+                ctx.shadowBlur = 12;
+
+                if (obstacleShape === "rect") {
+                    ctx.fillRect(obstacleX, obstacleY, obstacleWidth, obstacleHeight);
+                } else if (obstacleShape === "circle") {
+                    let radius = obstacleWidth / 2;
+                    ctx.beginPath();
+                    ctx.arc(obstacleX + radius, 360 - radius, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (obstacleShape === "triangle") {
+                    ctx.beginPath();
+                    ctx.moveTo(obstacleX + obstacleWidth / 2, obstacleY);
+                    ctx.lineTo(obstacleX, 360);
+                    ctx.lineTo(obstacleX + obstacleWidth, 360);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (obstacleShape === "star") {
+                    let cx = obstacleX + obstacleWidth / 2;
+                    let cy = 360 - obstacleHeight / 2;
+                    let outerRadius = obstacleHeight / 2;
+                    let innerRadius = outerRadius / 2;
+                    ctx.beginPath();
+                    for (let i = 0; i < 5; i++) {
+                        ctx.lineTo(cx + Math.cos((18 + i * 72) * Math.PI / 180) * outerRadius, cy - Math.sin((18 + i * 72) * Math.PI / 180) * outerRadius);
+                        ctx.lineTo(cx + Math.cos((54 + i * 72) * Math.PI / 180) * innerRadius, cy - Math.sin((54 + i * 72) * Math.PI / 180) * innerRadius);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                ctx.shadowBlur = 0;
+            }
+
             function update() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -303,33 +346,25 @@ with col_game:
                             }
                         }
 
-                        // 장애물 이동
-                        obstacleX -= (6 + Math.floor(score / 500)); // 점수가 높을수록 속도 빨라짐
+                        obstacleX -= (6 + Math.floor(score / 500));
                         if (obstacleX < -50) {
                             resetObstacle();
                             score += 100;
                         }
 
-                        // 정밀 충돌 판정 (랜덤 크기 반영)
+                        // 충돌 판정
                         let charCurrentY = charBaseY + jumpHeight;
-                        let charTopY = charCurrentY - 45;
-                        let obstacleTopY = obstacleY;
-
                         if (
                             obstacleX < charX + 20 &&
                             obstacleX + obstacleWidth > charX - 15 &&
-                            charCurrentY > obstacleTopY
+                            charCurrentY > obstacleY
                         ) {
                             isGameOver = true;
                         }
                     }
 
-                    // 무작위 크기의 네온 장애물 렌더링
-                    ctx.fillStyle = "#ffdd59";
-                    ctx.shadowColor = "#ffdd59";
-                    ctx.shadowBlur = 10;
-                    ctx.fillRect(obstacleX, obstacleY, obstacleWidth, obstacleHeight);
-                    ctx.shadowBlur = 0;
+                    // 모양별 무작위 장애물 그리기
+                    drawObstacle();
 
                     let renderY = charBaseY + jumpHeight;
                     drawPoseCharacter(charX, renderY, poseLandmarks);
