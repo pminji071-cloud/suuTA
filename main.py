@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **Space(2단 점프)**와 **Ctrl(숙이기)** 조작으로 장애물을 피하세요. **ESC 키**로 일시 정지할 수 있습니다.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 뼈다귀 캐릭터를 생성합니다! **점수 구간별(1000점→1800점→2300점→이후 500점마다)**로 장애물 속도가 빨라집니다. Space 2단점프와 Ctrl 숙이기로 생존하세요!")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -136,7 +136,7 @@ with col_game:
             let obstacleWidth = 35;
             let obstacleHeight = 45;
             let obstacleY = 315;
-            let obstacleSpeed = 6;
+            let obstacleSpeed = 5;
             let obstacleShape = "crystal";
             let obstacleColor = "#f43f5e";
             
@@ -147,14 +147,32 @@ with col_game:
             let countdownValue = 3;
             let countdownTimer = null;
 
-            // 가독성이 좋은 선명한 악당 컬러 및 모양 팔레트
             const caligoShapes = ["crystal", "spike", "core", "blade"];
             const caligoColors = ["#f43f5e", "#ec4899", "#a855f7", "#38bdf8", "#fbbf24", "#34d399"];
+
+            // 점수 구간별 속도 계산 함수
+            function calculateSpeed() {
+                let base = 4.5 + Math.random() * 1.5; // 초기 천천한 속도
+                
+                if (score >= 2300) {
+                    // 2300점 이후부터는 500점마다 추가 가속
+                    let extraTiers = Math.floor((score - 2300) / 500) + 1;
+                    return base + 3.0 + (extraTiers * 0.6);
+                } else if (score >= 1800) {
+                    return base + 2.5; // 1800점대 속도
+                } else if (score >= 1000) {
+                    return base + 1.5; // 1000점대 속도
+                } else {
+                    return base;       // 1000점 미만 (천천히)
+                }
+            }
 
             function resetObstacle() {
                 obstacleWidth = Math.floor(25 + Math.random() * 30);
                 obstacleHeight = Math.floor(30 + Math.random() * 40);
-                obstacleSpeed = 5 + Math.random() * 5;
+                
+                // 점수 구간에 맞춰 속도 반영
+                obstacleSpeed = calculateSpeed();
 
                 const isAir = Math.random() < 0.35;
                 if (isAir) {
@@ -325,11 +343,10 @@ with col_game:
                 ctx.shadowBlur = 0;
             }
 
-            // 장애물이 잘 보이도록 밝은 네온 테두리 및 빛 효과 추가
             function drawObstacle() {
                 ctx.fillStyle = obstacleColor;
                 ctx.shadowColor = "#ffffff";
-                ctx.shadowBlur = 12; // 빛나는 아우라 효과
+                ctx.shadowBlur = 12;
 
                 if (obstacleShape === "crystal") {
                     ctx.beginPath();
@@ -372,7 +389,6 @@ with col_game:
                     ctx.fill();
                 }
 
-                // 선명한 테두리 추가로 가독성 극대화
                 ctx.strokeStyle = "#ffffff";
                 ctx.lineWidth = 2;
                 if (obstacleShape === "crystal") {
@@ -509,7 +525,6 @@ with col_game:
                             score += 100;
                         }
 
-                        // 정밀 충돌 판정 (캐릭터 중심 좌표와 장애물 박스가 겹치는지 엄격하게 검사)
                         let charCurrentY = charBaseY + jumpHeight;
                         let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 45;
                         let charLeft = charX - 15;
@@ -520,7 +535,6 @@ with col_game:
                         let obsTop = obstacleY;
                         let obsBottom = obstacleY + obstacleHeight;
 
-                        // AABB 충돌 감지 공식 적용
                         if (
                             charRight > obsLeft &&
                             charLeft < obsRight &&
