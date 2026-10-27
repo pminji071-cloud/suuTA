@@ -39,7 +39,7 @@ with col_panel:
     
     st.write("---")
     st.markdown("#### 📜 **GAME GUIDE**")
-    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭하여 점프**하며, **ESC 키**를 눌러 게임을 일시 정지할 수 있습니다.")
+    st.info("사진을 올리면 **AI가 관절을 스캔**하여 관절 캐릭터를 생성합니다! **클릭하여 점프**하며, **ESC 키**를 눌러 일시 정지 메뉴를 열 수 있습니다.")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -129,20 +129,41 @@ with col_game:
             let jumpHeight = 0;
             let obstacleX = 700;
             let score = 0;
-            let isPaused = false; // 일시 정지 상태 변수
+            let isPaused = false;
 
-            // 마우스 클릭 점프 (정지 상태가 아닐 때만 작동)
-            canvas.addEventListener("click", function() {
-                if (!hasImage || isPaused) return;
+            // 마우스 클릭 이벤트 (게임 중 점프 또는 일시 정지 메뉴 버튼 클릭 처리)
+            canvas.addEventListener("click", function(e) {
+                if (!hasImage) return;
+
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                if (isPaused) {
+                    // 1. "이어서 재생" 버튼 클릭 영역 검사 (캔버스 중앙 기준)
+                    if (mouseX >= 225 && mouseX <= 425 && mouseY >= 210 && mouseY <= 250) {
+                        isPaused = false;
+                    }
+                    // 2. "처음으로 돌아가기" 버튼 클릭 영역 검사
+                    else if (mouseX >= 225 && mouseX <= 425 && mouseY >= 270 && mouseY <= 310) {
+                        score = 0;
+                        obstacleX = 700;
+                        jumpHeight = 0;
+                        isJumping = false;
+                        isPaused = false;
+                    }
+                    return;
+                }
+
                 if (!isJumping) {
                     isJumping = true;
                     jumpVelocity = -14;
                 }
             });
 
-            // ESC 키 입력 시 게임 일시 정지 / 재개 토글
+            // ESC 키 입력 시 일시 정지 토글
             window.addEventListener("keydown", function(e) {
-                if (e.key === "Escape") {
+                if (e.key === "Escape" && hasImage) {
                     isPaused = !isPaused;
                 }
             });
@@ -223,7 +244,6 @@ with col_game:
                     ctx.font = "14px 'Courier New'";
                     ctx.fillText("Upload a photo on the right panel to start game!", canvas.width / 2, canvas.height / 2 + 20);
                 } else {
-                    // 일시 정지 상태가 아닐 때만 게임 요소 업데이트
                     if (!isPaused) {
                         if (isJumping) {
                             jumpHeight += jumpVelocity;
@@ -259,19 +279,28 @@ with col_game:
                     ctx.font = "14px 'Courier New'";
                     ctx.fillText("🖱️ Click to Jump | [ESC] Pause", 300, 40);
 
-                    // 일시 정지 오버레이 안내 문구
+                    // 일시 정지 메뉴 오버레이
                     if (isPaused) {
-                        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                        ctx.fillStyle = "rgba(15, 52, 96, 0.85)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                         ctx.fillStyle = "#ff007f";
-                        ctx.font = "bold 28px 'Courier New'";
+                        ctx.font = "bold 26px 'Courier New'";
                         ctx.textAlign = "center";
-                        ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2 - 10);
+                        ctx.fillText("GAME PAUSED", canvas.width / 2, 120);
 
+                        // 버튼 1: 이어서 재생
                         ctx.fillStyle = "#00fff5";
-                        ctx.font = "14px 'Courier New'";
-                        ctx.fillText("Press [ESC] to Resume", canvas.width / 2, canvas.height / 2 + 25);
+                        ctx.fillRect(225, 210, 200, 40);
+                        ctx.fillStyle = "#0f3460";
+                        ctx.font = "bold 15px 'Courier New'";
+                        ctx.fillText("▶ 이어서 재생", canvas.width / 2, 235);
+
+                        // 버튼 2: 처음으로 돌아가기
+                        ctx.fillStyle = "#ffdd59";
+                        ctx.fillRect(225, 270, 200, 40);
+                        ctx.fillStyle = "#0f3460";
+                        ctx.fillText("🔄 처음으로", canvas.width / 2, 295);
                     }
                 }
 
