@@ -5,10 +5,10 @@ import numpy as np
 from PIL import Image
 import json
 
-# 1. 페이지 설정 (와이드 레이아웃 & 타이틀 설정)
+# 1. 페이지 설정 (와이드 레이아웃)
 st.set_page_config(page_title="내 뼈다귀가 멈추지 않아! 🦴🎮", page_icon="🐾", layout="wide")
 
-# 🌟 전체 Streamlit 배경 및 빈 공간을 귀여운 파스텔톤 다크 테마로 꾸미는 CSS 주입
+# 🌟 스타일 및 여백 꾸미기 CSS
 st.markdown("""
     <style>
         .stApp {
@@ -19,8 +19,8 @@ st.markdown("""
         
         [data-testid="column"]:nth-of-type(2) {
             background-color: rgba(35, 35, 54, 0.75);
-            padding: 20px;
-            border-radius: 24px;
+            padding: 15px;
+            border-radius: 20px;
             border: 3px solid #ffb7b2;
             box-shadow: 0 10px 25px rgba(255, 183, 178, 0.15);
         }
@@ -28,12 +28,12 @@ st.markdown("""
         [data-testid="stFileUploader"] {
             background-color: rgba(45, 45, 70, 0.6);
             border: 2px dashed #ffdac1;
-            border-radius: 16px;
-            padding: 10px;
+            border-radius: 14px;
+            padding: 8px;
         }
 
         .stButton>button {
-            border-radius: 20px;
+            border-radius: 18px;
             background-color: #ffb7b2;
             color: #ffffff;
             font-weight: bold;
@@ -49,7 +49,7 @@ st.markdown("""
 
         .streamlit-expanderHeader {
             background-color: rgba(45, 45, 70, 0.5);
-            border-radius: 12px;
+            border-radius: 10px;
             color: #f8fafc !important;
             font-weight: bold;
         }
@@ -61,15 +61,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 세션 상태(Session State)에 업로드된 사진 기록 저장소 초기화
+# 세션 상태 초기화
 if "saved_avatars" not in st.session_state:
     st.session_state.saved_avatars = []
 
-# MediaPipe Pose 모듈 준비
 mp_pose = mp.solutions.pose
 
-# 2. 레이아웃 분할 (왼쪽: 대화면 게임 / 오른쪽: 귀여운 파스텔톤 패널)
-col_game, col_panel = st.columns([3.5, 1])
+# 2. 레이아웃 비율 조정 (게임 화면이 잘리지 않도록 좌우 비율 최적화)
+col_game, col_panel = st.columns([2.8, 1])
 
 landmarks_json = "null"
 uploaded_file = None
@@ -86,11 +85,11 @@ with col_panel:
             st.session_state.saved_avatars = []
             st.rerun()
     else:
-        st.info("아직 저장된 아바타가 없어요!")
+        st.info("저장된 아바타 없음")
     
     st.write("---")
     st.markdown("### 🎨 플레이어 설정")
-    uploaded_file = st.file_uploader("🖼️ 내 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
+    uploaded_file = st.file_uploader("🖼️ 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
     
     skin_color = st.selectbox(
         "✨ 네온 관절 컬러", 
@@ -140,6 +139,7 @@ with col_game:
             font-family: 'Quicksand', 'Nunito', sans-serif; 
             margin: 0; 
             padding: 0;
+            overflow: hidden;
         }
         .game-container {
             display: flex;
@@ -150,15 +150,19 @@ with col_game:
         canvas { 
             background: #232336; 
             border: 4px solid #ffb7b2; 
-            border-radius: 24px; 
+            border-radius: 20px; 
             box-shadow: 0 10px 30px rgba(255, 183, 178, 0.2);
             cursor: pointer;
+            width: 100%;
+            max-width: 950px;
+            height: auto;
         }
     </style>
     </head>
     <body>
         <div class="game-container">
-            <canvas id="gameCanvas" width="1100" height="560"></canvas>
+            <!-- 캔버스 내부 해상도를 최적화하여 화면 잘림 방지 -->
+            <canvas id="gameCanvas" width="950" height="520"></canvas>
         </div>
 
         <script>
@@ -201,9 +205,8 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            // ⭐ 발이 바닥 라인(510px)에 정확히 안착하도록 기준 Y 좌표 조정
-            let charBaseY = 510;
-            let charX = 180;
+            let charBaseY = 460;
+            let charX = 150;
             
             let jumpCount = 0;
             const maxJumps = 2;
@@ -211,16 +214,16 @@ with col_game:
             let jumpVelocity = 0;
             let jumpHeight = 0;
             
-            let obstacleX = 1150;
-            let obstacleWidth = 45;
-            let obstacleHeight = 55;
-            let obstacleY = 455;
+            let obstacleX = 1000;
+            let obstacleWidth = 40;
+            let obstacleHeight = 50;
+            let obstacleY = 410;
             let obstacleSpeed = 5;
             let obstacleShape = "crystal";
             let obstacleColor = "#ff9aa2";
 
             let starX = -200;
-            let starY = 300;
+            let starY = 280;
             let starActive = false;
             let starEffectTimer = 0;
 
@@ -241,7 +244,6 @@ with col_game:
 
             function calculateSpeed() {
                 let base = 5.0 + Math.random() * 1.5;
-                
                 if (score >= 2200) {
                     let extraTiers = Math.floor((score - 2200) / 400) + 1;
                     return base + 3.2 + (extraTiers * 0.5);
@@ -257,26 +259,26 @@ with col_game:
             }
 
             function resetObstacle() {
-                obstacleWidth = Math.floor(35 + Math.random() * 30);
-                obstacleHeight = Math.floor(35 + Math.random() * 40);
+                obstacleWidth = Math.floor(30 + Math.random() * 30);
+                obstacleHeight = Math.floor(35 + Math.random() * 35);
                 
                 obstacleSpeed = calculateSpeed();
 
                 const isAir = Math.random() < 0.35;
                 if (isAir) {
-                    obstacleY = 320 + Math.random() * 60;
+                    obstacleY = 280 + Math.random() * 50;
                 } else {
-                    obstacleY = 510 - obstacleHeight;
+                    obstacleY = 460 - obstacleHeight;
                 }
 
-                obstacleX = 1100 + Math.random() * 400;
+                obstacleX = 950 + Math.random() * 350;
                 obstacleShape = caligoShapes[Math.floor(Math.random() * caligoShapes.length)];
                 obstacleColor = caligoColors[Math.floor(Math.random() * caligoColors.length)];
 
                 if (!starActive && Math.random() < 0.25) {
                     starActive = true;
-                    starX = 1100 + Math.random() * 300;
-                    starY = Math.random() < 0.5 ? 320 : 450; 
+                    starX = 950 + Math.random() * 250;
+                    starY = Math.random() < 0.5 ? 280 : 400; 
                 }
             }
 
@@ -326,10 +328,10 @@ with col_game:
                 }
 
                 if (isPaused) {
-                    if (mouseX >= 450 && mouseX <= 650 && mouseY >= 260 && mouseY <= 300) {
+                    if (mouseX >= 375 && mouseX <= 575 && mouseY >= 230 && mouseY <= 270) {
                         startCountdown();
                     }
-                    else if (mouseX >= 450 && mouseX <= 650 && mouseY >= 320 && mouseY <= 360) {
+                    else if (mouseX >= 375 && mouseX <= 575 && mouseY >= 290 && mouseY <= 330) {
                         score = 0;
                         starActive = false;
                         achievedMilestones = {};
@@ -404,8 +406,8 @@ with col_game:
                 ctx.shadowColor = "SKIN_COLOR_PLACEHOLDER";
                 ctx.shadowBlur = 8;
 
-                let scale = crouching ? 75 : 130;
-                let offsetY = crouching ? 40 : 0;
+                let scale = crouching ? 70 : 120;
+                let offsetY = crouching ? 35 : 0;
 
                 if (landmarks && landmarks.length > 0) {
                     POSE_CONNECTIONS.forEach(function(pair) {
@@ -424,14 +426,14 @@ with col_game:
                     const nose = landmarks[0];
                     if (nose) {
                         ctx.beginPath();
-                        ctx.arc(x + (nose.x - 0.5) * scale, offsetY + y + (nose.y - 0.5) * scale - 10, 16, 0, Math.PI * 2);
+                        ctx.arc(x + (nose.x - 0.5) * scale, offsetY + y + (nose.y - 0.5) * scale - 10, 15, 0, Math.PI * 2);
                         ctx.fill();
                     }
 
                     landmarks.forEach(function(lm, idx) {
                         if ([11,12,13,14,15,16,23,24,25,26,27,28].indexOf(idx) !== -1 && lm.visibility > 0.3) {
                             ctx.beginPath();
-                            ctx.arc(x + (lm.x - 0.5) * scale, offsetY + y + (lm.y - 0.5) * scale, 5, 0, Math.PI * 2);
+                            ctx.arc(x + (lm.x - 0.5) * scale, offsetY + y + (lm.y - 0.5) * scale, 4, 0, Math.PI * 2);
                             ctx.fillStyle = "#ffffff";
                             ctx.fill();
                             ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
@@ -527,79 +529,15 @@ with col_game:
             }
 
             function drawGorgeousBackground(themeLevel) {
-                if (themeLevel === 0) {
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 560);
-                    bgGrad.addColorStop(0, "#1e1e2f");
-                    bgGrad.addColorStop(0.5, "#2a2a40");
-                    bgGrad.addColorStop(1, "#3b3b58");
-                    ctx.fillStyle = bgGrad;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                let bgGrad = ctx.createLinearGradient(0, 0, 0, 520);
+                bgGrad.addColorStop(0, "#1e1e2f");
+                bgGrad.addColorStop(1, "#3b3b58");
+                ctx.fillStyle = bgGrad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    ctx.fillStyle = "rgba(255, 222, 215, 0.5)";
-                    let stars = [ [70,50], [180,100], [330,40], [450,130], [560,70], [680,150], [820,55], [100,210], [400,260], [650,220], [900,90], [1000,180] ];
-                    stars.forEach(s => { ctx.fillRect(s[0], s[1], 3, 3); });
-                } else if (themeLevel === 1) {
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 560);
-                    bgGrad.addColorStop(0, "#4a3b5c");
-                    bgGrad.addColorStop(0.5, "#6b4c7a");
-                    bgGrad.addColorStop(1, "#b57186");
-                    ctx.fillStyle = bgGrad;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    ctx.fillStyle = "rgba(42, 42, 64, 0.4)";
-                    ctx.fillRect(0, 360, 1100, 200);
-                } else if (themeLevel === 2) {
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 560);
-                    bgGrad.addColorStop(0, "#3a6073");
-                    bgGrad.addColorStop(0.5, "#ffb7b2");
-                    bgGrad.addColorStop(1, "#ffdac1");
-                    ctx.fillStyle = bgGrad;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-                    ctx.beginPath();
-                    ctx.arc(150, 220, 60, 0, Math.PI * 2);
-                    ctx.arc(210, 200, 80, 0, Math.PI * 2);
-                    ctx.arc(270, 225, 55, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    ctx.beginPath();
-                    ctx.arc(850, 260, 70, 0, Math.PI * 2);
-                    ctx.arc(930, 235, 90, 0, Math.PI * 2);
-                    ctx.fill();
-                } else if (themeLevel === 3) {
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 560);
-                    bgGrad.addColorStop(0, "#2b5876");
-                    bgGrad.addColorStop(1, "#4e4376");
-                    ctx.fillStyle = bgGrad;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
-                    ctx.beginPath(); ctx.arc(250, 340, 160, Math.PI, 0, false); ctx.fill();
-                    ctx.beginPath(); ctx.arc(850, 380, 200, Math.PI, 0, false); ctx.fill();
-                } else if (themeLevel === 4) {
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 560);
-                    bgGrad.addColorStop(0, "#232526");
-                    bgGrad.addColorStop(1, "#414345");
-                    ctx.fillStyle = bgGrad;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    ctx.fillStyle = "#888899";
-                    ctx.beginPath(); ctx.arc(900, 140, 70, 0, Math.PI * 2); ctx.fill();
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-                    ctx.lineWidth = 6;
-                    ctx.beginPath(); ctx.ellipse(900, 140, 115, 30, 0.3, 0, Math.PI * 2); ctx.stroke();
-                } else {
-                    let bgGrad = ctx.createLinearGradient(0, 0, 0, 560);
-                    bgGrad.addColorStop(0, "#1f1c2c");
-                    bgGrad.addColorStop(1, "#928dab");
-                    ctx.fillStyle = bgGrad;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    ctx.fillStyle = "#2a2640";
-                    ctx.fillRect(80, 280, 120, 280);
-                    ctx.fillRect(850, 220, 140, 340);
-                }
+                ctx.fillStyle = "rgba(255, 222, 215, 0.4)";
+                let stars = [ [70,50], [180,100], [330,40], [450,130], [560,70], [680,150], [820,55], [100,210], [400,260], [800,180] ];
+                stars.forEach(s => { ctx.fillRect(s[0], s[1], 3, 3); });
             }
 
             function update() {
@@ -608,26 +546,25 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
-                // ⭐ 바닥선 Y 좌표를 510으로 고정
+                // 바닥선
                 ctx.strokeStyle = "#ffb7b2";
                 ctx.lineWidth = 4;
-                ctx.beginPath(); ctx.moveTo(0, 510); ctx.lineTo(1100, 510); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 460); ctx.lineTo(950, 460); ctx.stroke();
 
                 if (!hasImage) {
                     ctx.fillStyle = "#ffb7b2";
-                    ctx.font = "bold 22px 'Quicksand', sans-serif";
+                    ctx.font = "bold 20px 'Quicksand', sans-serif";
                     ctx.textAlign = "center";
                     ctx.fillText("🐾 오른쪽 패널에서 내 사진을 업로드해 주세요!", canvas.width / 2, canvas.height / 2 - 15);
                     ctx.fillStyle = "#b5ead7";
-                    ctx.font = "15px 'Quicksand', sans-serif";
-                    ctx.fillText("Upload a photo to start RUNNING BONES!", canvas.width / 2, canvas.height / 2 + 25);
+                    ctx.font = "14px 'Quicksand', sans-serif";
+                    ctx.fillText("Upload a photo to start playing!", canvas.width / 2, canvas.height / 2 + 20);
                 } else {
                     if (!isPaused && !isCountdown && !isGameOver) {
                         if (jumpCount > 0) {
                             jumpHeight += jumpVelocity;
                             jumpVelocity += 0.75;
                             
-                            # ⭐ 착지 시 바닥을 뚫지 않고 정확히 0(바닥)에 딱 멈추도록 보정
                             if (jumpHeight >= 0) {
                                 jumpHeight = 0;
                                 jumpCount = 0;
@@ -702,7 +639,7 @@ with col_game:
                     if (starEffectTimer > 0) {
                         starEffectTimer--;
                         ctx.fillStyle = "#ffdf00";
-                        ctx.font = "bold 20px 'Quicksand', sans-serif";
+                        ctx.font = "bold 18px 'Quicksand', sans-serif";
                         ctx.textAlign = "center";
                         ctx.shadowColor = "#ffdf00";
                         ctx.shadowBlur = 10;
@@ -716,11 +653,11 @@ with col_game:
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                         ctx.fillStyle = "#ffdf00";
-                        ctx.font = "bold 32px 'Quicksand', sans-serif";
+                        ctx.font = "bold 28px 'Quicksand', sans-serif";
                         ctx.textAlign = "center";
                         ctx.shadowColor = "#ffb7b2";
                         ctx.shadowBlur = 20;
-                        ctx.fillText(celebrationText, canvas.width / 2, 140);
+                        ctx.fillText(celebrationText, canvas.width / 2, 130);
                         ctx.shadowBlur = 0;
                     }
 
@@ -729,30 +666,30 @@ with col_game:
 
                     const themeNames = ["✨ 포근한 밤", "🌸 몽환 숲", "☁️ 노을 바다", "🌊 오션 파스텔", "🪐 별빛 행성", "🏰 판타지 성"];
                     ctx.fillStyle = "#f8fafc";
-                    ctx.font = "bold 15px 'Quicksand', sans-serif";
+                    ctx.font = "bold 14px 'Quicksand', sans-serif";
                     ctx.textAlign = "left";
-                    ctx.fillText("⭐ SCORE: " + score + " [" + themeNames[themeLevel] + "]", 25, 40);
+                    ctx.fillText("⭐ SCORE: " + score + " [" + themeNames[themeLevel] + "]", 20, 35);
 
                     ctx.fillStyle = "#b5ead7";
-                    ctx.font = "13px 'Quicksand', sans-serif";
-                    ctx.fillText("⌨️ Space(x2): 2단점프 | Ctrl: 숙이기 | ESC: 일시정지", 430, 40);
+                    ctx.font = "12px 'Quicksand', sans-serif";
+                    ctx.fillText("⌨️ Space(x2): 2단점프 | Ctrl: 숙이기 | ESC: 일시정지", 360, 35);
 
                     if (isGameOver) {
                         ctx.fillStyle = "rgba(30, 30, 47, 0.92)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                         ctx.fillStyle = "#ffb7b2";
-                        ctx.font = "bold 40px 'Quicksand', sans-serif";
+                        ctx.font = "bold 36px 'Quicksand', sans-serif";
                         ctx.textAlign = "center";
-                        ctx.fillText("GAME OVER 🐾", canvas.width / 2, canvas.height / 2 - 30);
+                        ctx.fillText("GAME OVER 🐾", canvas.width / 2, canvas.height / 2 - 25);
 
                         ctx.fillStyle = "#b5ead7";
-                        ctx.font = "20px 'Quicksand', sans-serif";
+                        ctx.font = "18px 'Quicksand', sans-serif";
                         ctx.fillText("Final Score: " + score, canvas.width / 2, canvas.height / 2 + 15);
 
                         ctx.fillStyle = "#f8fafc";
-                        ctx.font = "16px 'Quicksand', sans-serif";
-                        ctx.fillText("클릭 또는 스페이스바로 다시 시작!", canvas.width / 2, canvas.height / 2 + 70);
+                        ctx.font = "15px 'Quicksand', sans-serif";
+                        ctx.fillText("클릭 또는 스페이스바로 다시 시작!", canvas.width / 2, canvas.height / 2 + 60);
                     }
 
                     if (isPaused) {
@@ -760,20 +697,20 @@ with col_game:
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                         ctx.fillStyle = "#ffb7b2";
-                        ctx.font = "bold 34px 'Quicksand', sans-serif";
+                        ctx.font = "bold 30px 'Quicksand', sans-serif";
                         ctx.textAlign = "center";
-                        ctx.fillText("GAME PAUSED ⏸️", canvas.width / 2, 160);
+                        ctx.fillText("GAME PAUSED ⏸️", canvas.width / 2, 140);
 
                         ctx.fillStyle = "#b5ead7";
-                        ctx.fillRect(450, 260, 200, 45);
+                        ctx.fillRect(375, 230, 200, 40);
                         ctx.fillStyle = "#1e1e2f";
-                        ctx.font = "bold 16px 'Quicksand', sans-serif";
-                        ctx.fillText("▶ 이어서 하기", canvas.width / 2, 288);
+                        ctx.font = "bold 15px 'Quicksand', sans-serif";
+                        ctx.fillText("▶ 이어서 하기", canvas.width / 2, 255);
 
                         ctx.fillStyle = "#ffdac1";
-                        ctx.fillRect(450, 325, 200, 45);
+                        ctx.fillRect(375, 290, 200, 40);
                         ctx.fillStyle = "#1e1e2f";
-                        ctx.fillText("🔄 처음으로", canvas.width / 2, 353);
+                        ctx.fillText("🔄 처음으로", canvas.width / 2, 315);
                     }
 
                     if (isCountdown) {
@@ -781,16 +718,16 @@ with col_game:
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                         ctx.fillStyle = "#ffdac1";
-                        ctx.font = "bold 80px 'Quicksand', sans-serif";
+                        ctx.font = "bold 70px 'Quicksand', sans-serif";
                         ctx.textAlign = "center";
                         ctx.shadowColor = "#ffdac1";
                         ctx.shadowBlur = 15;
-                        ctx.fillText(countdownValue, canvas.width / 2, canvas.height / 2 + 25);
+                        ctx.fillText(countdownValue, canvas.width / 2, canvas.height / 2 + 20);
                         ctx.shadowBlur = 0;
 
                         ctx.fillStyle = "#b5ead7";
-                        ctx.font = "20px 'Quicksand', sans-serif";
-                        ctx.fillText("준비하세요!", canvas.width / 2, canvas.height / 2 - 70);
+                        ctx.font = "18px 'Quicksand', sans-serif";
+                        ctx.fillText("준비하세요!", canvas.width / 2, canvas.height / 2 - 60);
                     }
                 }
 
@@ -807,4 +744,4 @@ with col_game:
     game_html = game_html.replace("LANDMARKS_DATA_PLACEHOLDER", landmarks_json)
     game_html = game_html.replace("SKIN_COLOR_PLACEHOLDER", skin_color)
 
-    components.html(game_html, height=590)
+    components.html(game_html, height=540)
