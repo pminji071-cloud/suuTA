@@ -204,8 +204,8 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            let floorY = 360; // 두 번째 바닥선 위치
-            let charBaseY = floorY + 45; // ⭐ 발끝이 정확히 선에 닿도록 기준점 오프셋 조정
+            let floorY = 460; // ⭐ 캐릭터가 진짜로 서 있게 될 맨 아래 바닥선 위치
+            let charBaseY = floorY; 
             let charX = 150;
             
             let jumpCount = 0;
@@ -217,13 +217,13 @@ with col_game:
             let obstacleX = 1000;
             let obstacleWidth = 40;
             let obstacleHeight = 50;
-            let obstacleY = floorY - 50;
+            let obstacleY = floorY - obstacleHeight;
             let obstacleSpeed = 5;
             let obstacleShape = "crystal";
             let obstacleColor = "#ff9aa2";
 
             let starX = -200;
-            let starY = 250;
+            let starY = 300;
             let starActive = false;
             let starEffectTimer = 0;
 
@@ -278,7 +278,7 @@ with col_game:
                 if (!starActive && Math.random() < 0.25) {
                     starActive = true;
                     starX = 950 + Math.random() * 250;
-                    starY = Math.random() < 0.5 ? floorY - 100 : floorY - 40; 
+                    starY = Math.random() < 0.5 ? floorY - 120 : floorY - 50; 
                 }
             }
 
@@ -406,8 +406,8 @@ with col_game:
                 ctx.shadowColor = "SKIN_COLOR_PLACEHOLDER";
                 ctx.shadowBlur = 8;
 
-                let scale = crouching ? 65 : 110;
-                let offsetY = crouching ? 25 : 0;
+                let scale = crouching ? 65 : 100;
+                let offsetY = crouching ? 20 : -5; // 발끝이 정확히 바닥선(y)에 닿도록 오프셋 보정
 
                 if (landmarks && landmarks.length > 0) {
                     POSE_CONNECTIONS.forEach(function(pair) {
@@ -440,7 +440,7 @@ with col_game:
                         }
                     });
                 } else {
-                    let cy = crouching ? y + 15 : y;
+                    let cy = crouching ? y + 15 : y - 20;
                     ctx.beginPath(); ctx.arc(x, cy - 30, 14, 0, Math.PI * 2); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(x, cy - 16); ctx.lineTo(x, cy + 15); ctx.stroke();
                     ctx.beginPath(); ctx.moveTo(x - 15, cy - 8); ctx.lineTo(x + 15, cy - 8); ctx.stroke();
@@ -546,11 +546,13 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
-                // 두 번째 바닥선 및 장식선
+                // ⭐ 맨 아래 진짜 바닥선 (이 선 위에 캐릭터 발이 서게 됨)
                 ctx.strokeStyle = "#ffb7b2";
                 ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(950, floorY); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, 480); ctx.lineTo(950, 480); ctx.stroke();
+                
+                // 상단 장식선
+                ctx.beginPath(); ctx.moveTo(0, 180); ctx.lineTo(950, 180); ctx.stroke();
 
                 if (!hasImage) {
                     ctx.fillStyle = "#ffb7b2";
