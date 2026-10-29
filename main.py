@@ -204,8 +204,8 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            let floorY = 360; // ⭐ 중간 바닥선 위치
-            let charBaseY = floorY; 
+            let floorY = 360; // 두 번째 바닥선 위치
+            let charBaseY = floorY + 45; // ⭐ 발끝이 정확히 선에 닿도록 기준점 오프셋 조정
             let charX = 150;
             
             let jumpCount = 0;
@@ -546,7 +546,7 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
-                // ⭐ 중간 바닥선 (두 번째 줄) 및 맨 아래 장식용 선
+                // 두 번째 바닥선 및 장식선
                 ctx.strokeStyle = "#ffb7b2";
                 ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(950, floorY); ctx.stroke();
