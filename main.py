@@ -243,7 +243,6 @@ with col_game:
             const caligoShapes = ["crystal", "spike", "core", "blade"];
             const caligoColors = ["#ff9aa2", "#ffb7b2", "#ffdac1", "#e2f0cb", "#b5ead7", "#c7ceea"];
 
-            // ⭐ 500, 1000, 1500, 1800, 2000 구간별 적용 및 2000점 이후 500점마다 속도 2배 가속
             function calculateSpeed() {
                 let baseSpeed = 5.0;
                 if (score >= 2000) {
@@ -647,11 +646,17 @@ with col_game:
                         let obsTop = obstacleY;
                         let obsBottom = obstacleY + obstacleHeight;
 
+                        // ⭐ 머리(상단)부터 발끝까지 전체 몸통 충돌 박스 확장 (머리가 닿아도 사망)
+                        let charLeft = charX - 22;
+                        let charRight = charX + 22;
+                        let charTop = isCrouching ? currentFloor - 45 : currentFloor - 105;
+                        let charBottom = currentFloor;
+
                         if (
-                            charX + 15 > obsLeft &&
-                            charX - 15 < obsRight &&
-                            currentFloor > obsTop &&
-                            currentFloor - 70 < obsBottom
+                            charRight > obsLeft &&
+                            charLeft < obsRight &&
+                            charBottom > obsTop &&
+                            charTop < obsBottom
                         ) {
                             isGameOver = true;
                         }
