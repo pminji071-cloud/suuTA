@@ -204,7 +204,9 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            let floorY = 380; // 기준 바닥선 (중간선)
+            let baseFloorY = 380; // 기본 바닥선 기준 Y
+            let floorY = 380;     // 실시간 변동되는 바닥선 Y
+            let targetFloorY = 380; // 바닥이 움직일 목표 Y
             let charX = 150;
             
             let jumpCount = 0;
@@ -279,6 +281,15 @@ with col_game:
                     starX = 950 + Math.random() * 250;
                     starY = Math.random() < 0.5 ? floorY - 120 : floorY - 50; 
                 }
+
+                // ⭐ [방해공작] 점수가 300점 이상일 때 일정 확률로 바닥이 위아래로 움직임 (35% 확률)
+                if (score >= 300 && Math.random() < 0.35) {
+                    // 기본 바닥(380)을 기준으로 위(-45px) 또는 아래(+25px)로 변동
+                    let offsets = [-45, -30, 20, 35];
+                    targetFloorY = baseFloorY + offsets[Math.floor(Math.random() * offsets.length)];
+                } else {
+                    targetFloorY = baseFloorY; // 평소에는 기본 바닥 유지
+                }
             }
 
             function startCountdown() {
@@ -317,6 +328,8 @@ with col_game:
                 if (isGameOver) {
                     isGameOver = false;
                     score = 0;
+                    floorY = baseFloorY;
+                    targetFloorY = baseFloorY;
                     starActive = false;
                     achievedMilestones = {};
                     resetObstacle();
@@ -332,6 +345,8 @@ with col_game:
                     }
                     else if (mouseX >= 375 && mouseX <= 575 && mouseY >= 290 && mouseY <= 330) {
                         score = 0;
+                        floorY = baseFloorY;
+                        targetFloorY = baseFloorY;
                         starActive = false;
                         achievedMilestones = {};
                         resetObstacle();
@@ -357,6 +372,8 @@ with col_game:
                     if (isGameOver) {
                         isGameOver = false;
                         score = 0;
+                        floorY = baseFloorY;
+                        targetFloorY = baseFloorY;
                         starActive = false;
                         achievedMilestones = {};
                         resetObstacle();
@@ -397,7 +414,6 @@ with col_game:
                 [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28]
             ];
 
-            // ⭐ 발끝 관절이 정확히 바닥선(floorY)에 딱 닿도록 그리는 함수
             function drawPoseCharacter(x, currentFloorY, landmarks, crouching) {
                 ctx.strokeStyle = "SKIN_COLOR_PLACEHOLDER";
                 ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
@@ -409,7 +425,6 @@ with col_game:
                 let scale = crouching ? 65 : 100;
 
                 if (landmarks && landmarks.length > 0) {
-                    // 관절 중 가장 아랫부분(발목/발 끝)의 Y 좌표 찾기
                     let maxY = -999;
                     landmarks.forEach(function(lm, idx) {
                         if ([27, 28, 29, 30, 31, 32].indexOf(idx) !== -1 && lm.visibility > 0.2) {
@@ -417,7 +432,6 @@ with col_game:
                         }
                     });
 
-                    // 발 관절 스캔이 안 된 경우 기본 엉덩이/복부 관절 기준
                     if (maxY === -999) {
                         if (landmarks[23] && landmarks[24]) {
                             maxY = Math.max(landmarks[23].y, landmarks[24].y) + 0.3;
@@ -426,7 +440,6 @@ with col_game:
                         }
                     }
 
-                    // ⭐ 발끝 관절의 Y 좌표가 바닥선(currentFloorY)에 완벽하게 일치하도록 오프셋 계산
                     let feetYScaled = (maxY - 0.5) * scale;
                     let calculatedOffsetY = currentFloorY - feetYScaled;
 
@@ -460,7 +473,6 @@ with col_game:
                         }
                     });
                 } else {
-                    // 기본 아바타 발이 바닥선에 착지
                     let baseOffsetY = crouching ? currentFloorY - 20 : currentFloorY - 50;
                     ctx.beginPath(); ctx.arc(x, baseOffsetY - 30, 14, 0, Math.PI * 2); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(x, baseOffsetY - 16); ctx.lineTo(x, baseOffsetY + 15); ctx.stroke();
@@ -567,7 +579,10 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
-                // ⭐ 캐릭터가 서 있는 바닥선만 굵고 깔끔하게 표시
+                // ⭐ 바닥선이 목표 위치로 부드럽게 스르륵 움직이도록 보간(Lerp) 적용
+                floorY += (targetFloorY - floorY) * 0.05;
+
+                // 바닥선 렌더링
                 ctx.strokeStyle = "#ffb7b2";
                 ctx.lineWidth = 4;
                 ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(950, floorY); ctx.stroke();
@@ -674,7 +689,6 @@ with col_game:
                         ctx.shadowBlur = 0;
                     }
 
-                    // ⭐ 발끝이 정확히 바닥선 위에 착지하도록 함수 호출
                     let currentFloor = floorY + jumpHeight;
                     drawPoseCharacter(charX, currentFloor, poseLandmarks, isCrouching);
 
