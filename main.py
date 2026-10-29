@@ -243,20 +243,20 @@ with col_game:
             const caligoShapes = ["crystal", "spike", "core", "blade"];
             const caligoColors = ["#ff9aa2", "#ffb7b2", "#ffdac1", "#e2f0cb", "#b5ead7", "#c7ceea"];
 
-            // ⭐ 요청하신 구간별 및 2000점 이후 500점 단위 2배 가속 시스템
+            // ⭐ 500, 1000, 1500, 1800, 2000 구간별 적용 및 2000점 이후 500점마다 속도 2배 가속
             function calculateSpeed() {
                 let baseSpeed = 5.0;
                 if (score >= 2000) {
-                    let extraTier = Math.floor((score - 2000) / 500) + 1; // 2000점 이후 500점마다 +1 단계
+                    let extraTier = Math.floor((score - 2000) / 500) + 1;
                     return baseSpeed * Math.pow(2, extraTier);
                 } else if (score >= 1800) {
-                    return baseSpeed * 1.8;
+                    return baseSpeed * 2.2;
                 } else if (score >= 1500) {
-                    return baseSpeed * 1.5;
+                    return baseSpeed * 1.9;
                 } else if (score >= 1000) {
-                    return baseSpeed * 1.3;
+                    return baseSpeed * 1.6;
                 } else if (score >= 500) {
-                    return baseSpeed * 1.15;
+                    return baseSpeed * 1.3;
                 } else {
                     return baseSpeed;
                 }
