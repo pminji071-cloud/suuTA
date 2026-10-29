@@ -243,13 +243,12 @@ with col_game:
             const caligoShapes = ["crystal", "spike", "core", "blade"];
             const caligoColors = ["#ff9aa2", "#ffb7b2", "#ffdac1", "#e2f0cb", "#b5ead7", "#c7ceea"];
 
-            // ⭐ 500점마다 속도가 단계적으로 빨라지도록 가속 시스템 적용
+            // ⭐ 500점마다 속도가 2배씩 곱해져서 늘어나도록 설정 (기본속도 5 * 2^tier)
             function calculateSpeed() {
                 let baseSpeed = 5.0;
-                let tier = Math.floor(score / 500); // 500점 단위로 티어 상승 (0, 1, 2, 3...)
-                let speedBoost = tier * 0.8; // 500점마다 속도 +0.8씩 증가
-                let randomVar = Math.random() * 1.0;
-                return baseSpeed + speedBoost + randomVar;
+                let tier = Math.floor(score / 500); // 500점마다 티어 증가 (0, 1, 2, 3...)
+                let multiplier = Math.pow(2, tier);  // 500점당 2배 (5 -> 10 -> 20 -> 40...)
+                return baseSpeed * multiplier;
             }
 
             function resetObstacle() {
