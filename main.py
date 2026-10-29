@@ -85,7 +85,7 @@ with col_panel:
             st.session_state.saved_avatars = []
             st.rerun()
     else:
-        st.info("아직 저장된 아바타 없음")
+        st.info("저장된 아바타 없음")
     
     st.write("---")
     st.markdown("### 🎨 플레이어 설정")
@@ -204,9 +204,9 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            let baseFloorY = 380; // 기본 바닥선 기준 Y
-            let floorY = 380;     // 실시간 변동되는 바닥선 Y
-            let targetFloorY = 380; // 바닥이 움직일 목표 Y
+            let baseFloorY = 380;
+            let floorY = 380;
+            let targetFloorY = 380;
             let charX = 150;
             
             let jumpCount = 0;
@@ -243,20 +243,13 @@ with col_game:
             const caligoShapes = ["crystal", "spike", "core", "blade"];
             const caligoColors = ["#ff9aa2", "#ffb7b2", "#ffdac1", "#e2f0cb", "#b5ead7", "#c7ceea"];
 
+            // ⭐ 500점마다 속도가 단계적으로 빨라지도록 가속 시스템 적용
             function calculateSpeed() {
-                let base = 5.0 + Math.random() * 1.5;
-                if (score >= 2200) {
-                    let extraTiers = Math.floor((score - 2200) / 400) + 1;
-                    return base + 3.2 + (extraTiers * 0.5);
-                } else if (score >= 1800) {
-                    return base + 2.6;
-                } else if (score >= 1200) {
-                    return base + 1.8;
-                } else if (score >= 600) {
-                    return base + 1.0;
-                } else {
-                    return base;
-                }
+                let baseSpeed = 5.0;
+                let tier = Math.floor(score / 500); // 500점 단위로 티어 상승 (0, 1, 2, 3...)
+                let speedBoost = tier * 0.8; // 500점마다 속도 +0.8씩 증가
+                let randomVar = Math.random() * 1.0;
+                return baseSpeed + speedBoost + randomVar;
             }
 
             function resetObstacle() {
@@ -282,13 +275,11 @@ with col_game:
                     starY = Math.random() < 0.5 ? floorY - 120 : floorY - 50; 
                 }
 
-                // ⭐ [방해공작] 점수가 300점 이상일 때 일정 확률로 바닥이 위아래로 움직임 (35% 확률)
                 if (score >= 300 && Math.random() < 0.35) {
-                    // 기본 바닥(380)을 기준으로 위(-45px) 또는 아래(+25px)로 변동
                     let offsets = [-45, -30, 20, 35];
                     targetFloorY = baseFloorY + offsets[Math.floor(Math.random() * offsets.length)];
                 } else {
-                    targetFloorY = baseFloorY; // 평소에는 기본 바닥 유지
+                    targetFloorY = baseFloorY;
                 }
             }
 
@@ -579,10 +570,8 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
-                // ⭐ 바닥선이 목표 위치로 부드럽게 스르륵 움직이도록 보간(Lerp) 적용
                 floorY += (targetFloorY - floorY) * 0.05;
 
-                // 바닥선 렌더링
                 ctx.strokeStyle = "#ffb7b2";
                 ctx.lineWidth = 4;
                 ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(950, floorY); ctx.stroke();
