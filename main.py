@@ -85,7 +85,7 @@ with col_panel:
             st.session_state.saved_avatars = []
             st.rerun()
     else:
-        st.info("저장된 아바타 없음")
+        st.info("아직 저장된 아바타 없음")
     
     st.write("---")
     st.markdown("### 🎨 플레이어 설정")
@@ -204,7 +204,7 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            let floorY = 460; // ⭐ 캐릭터가 진짜로 서 있게 될 맨 아래 바닥선 위치
+            let floorY = 380; // ⭐ 중간 가로선을 새로운 바닥 위치로 지정
             let charBaseY = floorY; 
             let charX = 150;
             
@@ -223,7 +223,7 @@ with col_game:
             let obstacleColor = "#ff9aa2";
 
             let starX = -200;
-            let starY = 300;
+            let starY = 250;
             let starActive = false;
             let starEffectTimer = 0;
 
@@ -407,7 +407,7 @@ with col_game:
                 ctx.shadowBlur = 8;
 
                 let scale = crouching ? 65 : 100;
-                let offsetY = crouching ? 20 : -5; // 발끝이 정확히 바닥선(y)에 닿도록 오프셋 보정
+                let offsetY = crouching ? 20 : -5; // ⭐ 발끝이 정확히 중간 가로선에 닿도록 오프셋 보정
 
                 if (landmarks && landmarks.length > 0) {
                     POSE_CONNECTIONS.forEach(function(pair) {
@@ -546,13 +546,13 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
-                // ⭐ 맨 아래 진짜 바닥선 (이 선 위에 캐릭터 발이 서게 됨)
+                // ⭐ 중간 가로선을 진짜 바닥선으로 그리기
                 ctx.strokeStyle = "#ffb7b2";
                 ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(950, floorY); ctx.stroke();
                 
-                // 상단 장식선
-                ctx.beginPath(); ctx.moveTo(0, 180); ctx.lineTo(950, 180); ctx.stroke();
+                // 맨 아래 선은 장식용으로 배치
+                ctx.beginPath(); ctx.moveTo(0, 480); ctx.lineTo(950, 480); ctx.stroke();
 
                 if (!hasImage) {
                     ctx.fillStyle = "#ffb7b2";
