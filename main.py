@@ -204,8 +204,7 @@ with col_game:
             let hasImage = HAS_IMAGE_PLACEHOLDER;
             let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
 
-            let floorY = 380; // ⭐ 중간 가로선을 새로운 바닥 위치로 지정
-            let charBaseY = floorY; 
+            let floorY = 380; // 기준 바닥선 (중간선)
             let charX = 150;
             
             let jumpCount = 0;
@@ -398,7 +397,8 @@ with col_game:
                 [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28]
             ];
 
-            function drawPoseCharacter(x, y, landmarks, crouching) {
+            // ⭐ 발끝 관절이 정확히 바닥선(floorY)에 딱 닿도록 그리는 함수
+            function drawPoseCharacter(x, currentFloorY, landmarks, crouching) {
                 ctx.strokeStyle = "SKIN_COLOR_PLACEHOLDER";
                 ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
                 ctx.lineWidth = 4;
@@ -407,9 +407,29 @@ with col_game:
                 ctx.shadowBlur = 8;
 
                 let scale = crouching ? 65 : 100;
-                let offsetY = crouching ? 20 : -5; // ⭐ 발끝이 정확히 중간 가로선에 닿도록 오프셋 보정
 
                 if (landmarks && landmarks.length > 0) {
+                    // 관절 중 가장 아랫부분(발목/발 끝)의 Y 좌표 찾기
+                    let maxY = -999;
+                    landmarks.forEach(function(lm, idx) {
+                        if ([27, 28, 29, 30, 31, 32].indexOf(idx) !== -1 && lm.visibility > 0.2) {
+                            if (lm.y > maxY) maxY = lm.y;
+                        }
+                    });
+
+                    // 발 관절 스캔이 안 된 경우 기본 엉덩이/복부 관절 기준
+                    if (maxY === -999) {
+                        if (landmarks[23] && landmarks[24]) {
+                            maxY = Math.max(landmarks[23].y, landmarks[24].y) + 0.3;
+                        } else {
+                            maxY = 0.85;
+                        }
+                    }
+
+                    // ⭐ 발끝 관절의 Y 좌표가 바닥선(currentFloorY)에 완벽하게 일치하도록 오프셋 계산
+                    let feetYScaled = (maxY - 0.5) * scale;
+                    let calculatedOffsetY = currentFloorY - feetYScaled;
+
                     POSE_CONNECTIONS.forEach(function(pair) {
                         const i = pair[0];
                         const j = pair[1];
@@ -417,8 +437,8 @@ with col_game:
                         const pt2 = landmarks[j];
                         if (pt1 && pt2 && pt1.visibility > 0.3 && pt2.visibility > 0.3) {
                             ctx.beginPath();
-                            ctx.moveTo(x + (pt1.x - 0.5) * scale, offsetY + y + (pt1.y - 0.5) * scale);
-                            ctx.lineTo(x + (pt2.x - 0.5) * scale, offsetY + y + (pt2.y - 0.5) * scale);
+                            ctx.moveTo(x + (pt1.x - 0.5) * scale, calculatedOffsetY + (pt1.y - 0.5) * scale);
+                            ctx.lineTo(x + (pt2.x - 0.5) * scale, calculatedOffsetY + (pt2.y - 0.5) * scale);
                             ctx.stroke();
                         }
                     });
@@ -426,24 +446,25 @@ with col_game:
                     const nose = landmarks[0];
                     if (nose) {
                         ctx.beginPath();
-                        ctx.arc(x + (nose.x - 0.5) * scale, offsetY + y + (nose.y - 0.5) * scale - 10, 14, 0, Math.PI * 2);
+                        ctx.arc(x + (nose.x - 0.5) * scale, calculatedOffsetY + (nose.y - 0.5) * scale - 10, 14, 0, Math.PI * 2);
                         ctx.fill();
                     }
 
                     landmarks.forEach(function(lm, idx) {
                         if ([11,12,13,14,15,16,23,24,25,26,27,28].indexOf(idx) !== -1 && lm.visibility > 0.3) {
                             ctx.beginPath();
-                            ctx.arc(x + (lm.x - 0.5) * scale, offsetY + y + (lm.y - 0.5) * scale, 4, 0, Math.PI * 2);
+                            ctx.arc(x + (lm.x - 0.5) * scale, calculatedOffsetY + (lm.y - 0.5) * scale, 4, 0, Math.PI * 2);
                             ctx.fillStyle = "#ffffff";
                             ctx.fill();
                             ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
                         }
                     });
                 } else {
-                    let cy = crouching ? y + 15 : y - 20;
-                    ctx.beginPath(); ctx.arc(x, cy - 30, 14, 0, Math.PI * 2); ctx.fill();
-                    ctx.beginPath(); ctx.moveTo(x, cy - 16); ctx.lineTo(x, cy + 15); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(x - 15, cy - 8); ctx.lineTo(x + 15, cy - 8); ctx.stroke();
+                    // 기본 아바타 발이 바닥선에 착지
+                    let baseOffsetY = crouching ? currentFloorY - 20 : currentFloorY - 50;
+                    ctx.beginPath(); ctx.arc(x, baseOffsetY - 30, 14, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(x, baseOffsetY - 16); ctx.lineTo(x, baseOffsetY + 15); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(x - 15, baseOffsetY - 8); ctx.lineTo(x + 15, baseOffsetY - 8); ctx.stroke();
                 }
                 ctx.shadowBlur = 0;
             }
@@ -546,13 +567,10 @@ with col_game:
                 let themeLevel = Math.floor(score / 1000) % 6;
                 drawGorgeousBackground(themeLevel);
 
-                // ⭐ 중간 가로선을 진짜 바닥선으로 그리기
+                // ⭐ 캐릭터가 서 있는 바닥선만 굵고 깔끔하게 표시
                 ctx.strokeStyle = "#ffb7b2";
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 4;
                 ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(950, floorY); ctx.stroke();
-                
-                // 맨 아래 선은 장식용으로 배치
-                ctx.beginPath(); ctx.moveTo(0, 480); ctx.lineTo(950, 480); ctx.stroke();
 
                 if (!hasImage) {
                     ctx.fillStyle = "#ffb7b2";
@@ -595,16 +613,12 @@ with col_game:
                                 starActive = false;
                             }
 
-                            let charCurrentY = charBaseY + jumpHeight;
-                            let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 45;
-                            let charLeft = charX - 14;
-                            let charRight = charX + 14;
-
+                            let currentFloor = floorY + jumpHeight;
                             if (
-                                charRight > starX - 15 &&
-                                charLeft < starX + 15 &&
-                                charCurrentY > starY - 15 &&
-                                charHeadY < starY + 15
+                                charX + 20 > starX - 15 &&
+                                charX - 20 < starX + 15 &&
+                                currentFloor > starY - 30 &&
+                                currentFloor - 80 < starY + 15
                             ) {
                                 score += 100; 
                                 starActive = false;
@@ -613,21 +627,17 @@ with col_game:
                             }
                         }
 
-                        let charCurrentY = charBaseY + jumpHeight;
-                        let charHeadY = isCrouching ? charCurrentY - 20 : charCurrentY - 45;
-                        let charLeft = charX - 14;
-                        let charRight = charX + 14;
-
+                        let currentFloor = floorY + jumpHeight;
                         let obsLeft = obstacleX;
                         let obsRight = obstacleX + obstacleWidth;
                         let obsTop = obstacleY;
                         let obsBottom = obstacleY + obstacleHeight;
 
                         if (
-                            charRight > obsLeft &&
-                            charLeft < obsRight &&
-                            charCurrentY > obsTop &&
-                            charHeadY < obsBottom
+                            charX + 15 > obsLeft &&
+                            charX - 15 < obsRight &&
+                            currentFloor > obsTop &&
+                            currentFloor - 70 < obsBottom
                         ) {
                             isGameOver = true;
                         }
@@ -646,7 +656,7 @@ with col_game:
                         ctx.textAlign = "center";
                         ctx.shadowColor = "#ffdf00";
                         ctx.shadowBlur = 10;
-                        ctx.fillText("🌟 BONUS x2 SCORE! 🌟", charX + 20, charBaseY + jumpHeight - 60);
+                        ctx.fillText("🌟 BONUS x2 SCORE! 🌟", charX + 20, floorY + jumpHeight - 110);
                         ctx.shadowBlur = 0;
                     }
 
@@ -664,8 +674,9 @@ with col_game:
                         ctx.shadowBlur = 0;
                     }
 
-                    let renderY = charBaseY + jumpHeight;
-                    drawPoseCharacter(charX, renderY, poseLandmarks, isCrouching);
+                    // ⭐ 발끝이 정확히 바닥선 위에 착지하도록 함수 호출
+                    let currentFloor = floorY + jumpHeight;
+                    drawPoseCharacter(charX, currentFloor, poseLandmarks, isCrouching);
 
                     const themeNames = ["✨ 포근한 밤", "🌸 몽환 숲", "☁️ 노을 바다", "🌊 오션 파스텔", "🪐 별빛 행성", "🏰 판타지 성"];
                     ctx.fillStyle = "#f8fafc";
