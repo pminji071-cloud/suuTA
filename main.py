@@ -85,7 +85,7 @@ with col_panel:
             st.session_state.saved_avatars = []
             st.rerun()
     else:
-        st.info("저장된 아바타 없음")
+        st.info("아직 저장된 아바타 없음")
     
     st.write("---")
     st.markdown("### 🎨 플레이어 설정")
@@ -237,17 +237,29 @@ with col_game:
 
             let celebrationText = "";
             let celebrationTimer = 0;
-            const targetMilestones = [1000, 2000, 5000, 7777, 10000];
+            const targetMilestones = [500, 1000, 1500, 1800, 2000, 5000, 7777, 10000];
             let achievedMilestones = {};
 
             const caligoShapes = ["crystal", "spike", "core", "blade"];
             const caligoColors = ["#ff9aa2", "#ffb7b2", "#ffdac1", "#e2f0cb", "#b5ead7", "#c7ceea"];
 
+            // ⭐ 요청하신 구간별 및 2000점 이후 500점 단위 2배 가속 시스템
             function calculateSpeed() {
                 let baseSpeed = 5.0;
-                let tier = Math.floor(score / 500);
-                let multiplier = Math.pow(2, tier);
-                return baseSpeed * multiplier;
+                if (score >= 2000) {
+                    let extraTier = Math.floor((score - 2000) / 500) + 1; // 2000점 이후 500점마다 +1 단계
+                    return baseSpeed * Math.pow(2, extraTier);
+                } else if (score >= 1800) {
+                    return baseSpeed * 1.8;
+                } else if (score >= 1500) {
+                    return baseSpeed * 1.5;
+                } else if (score >= 1000) {
+                    return baseSpeed * 1.3;
+                } else if (score >= 500) {
+                    return baseSpeed * 1.15;
+                } else {
+                    return baseSpeed;
+                }
             }
 
             function resetObstacle() {
@@ -302,7 +314,6 @@ with col_game:
                 
                 if (jumpCount < maxJumps) {
                     jumpCount++;
-                    // ⭐ 점프 초기 속도를 더 강력하게 상향 (빠르게 솟아오름)
                     jumpVelocity = -18;
                 }
             }
@@ -587,7 +598,6 @@ with col_game:
                     if (!isPaused && !isCountdown && !isGameOver) {
                         if (jumpCount > 0) {
                             jumpHeight += jumpVelocity;
-                            // ⭐ 중력 가속도를 높여서 떨어지는 속도도 빠르게 조정 (빠른 연속 점프 가능)
                             jumpVelocity += 1.05;
                             
                             if (jumpHeight >= 0) {
