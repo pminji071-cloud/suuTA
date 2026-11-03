@@ -4,6 +4,8 @@ import mediapipe as mp
 import numpy as np
 from PIL import Image
 import json
+import base64
+import io
 
 # 1. 페이지 설정 (와이드 레이아웃)
 st.set_page_config(page_title="내 뼈다귀가 멈추지 않아! 🦴🎮", page_icon="🐾", layout="wide")
@@ -61,36 +63,64 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 세션 상태 초기화
-if "saved_avatars" not in st.session_state:
-    st.session_state.saved_avatars = []
-
 mp_pose = mp.solutions.pose
 
 # 2. 레이아웃 비율 조정
 col_game, col_panel = st.columns([2.8, 1])
 
 landmarks_json = "null"
-uploaded_file = None
+active_image_base64 = None
 
 with col_panel:
     st.markdown("### 🐾 아바타 보관함")
-    if len(st.session_state.saved_avatars) > 0:
-        st.caption(f"총 {len(st.session_state.saved_avatars)}개 보관 중!")
-        for idx, avatar in enumerate(st.session_state.saved_avatars):
-            with st.expander(f"✨ #{idx+1} {avatar['name'][:10]}..."):
-                st.image(avatar['image'], use_container_width=True)
+    
+    # 브라우저 localStorage를 흉내 내어 Streamlit 세션에 영구 캐싱
+    if "persistent_avatar" not in st.session_state:
+        st.session_state.persistent_avatar = None
+        st.session_state.persistent_landmarks = None
+        st.session_state.persistent_name = None
+
+    uploaded_file = st.file_uploader("🖼️ 새 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
+
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file).convert("RGB")
         
-        if st.button("🗑️ 보관함 비우기"):
-            st.session_state.saved_avatars = []
+        # PIL 이미지를 Base64 문자열로 변환하여 영구 저장
+        buffered = io.BytesIO()
+        image.save(buffered, format="JPEG")
+        img_str = base64.b64encode(buffered.getvalue()).decode()
+        active_image_base64 = f"data:image/jpeg;base64,{img_str}"
+
+        # MediaPipe 관절 스캔
+        img_array = np.array(image)
+        with mp_pose.Pose(static_image_mode=True, model_complexity=1) as pose:
+            results = pose.process(img_array)
+            if results.pose_landmarks:
+                lm_list = []
+                for lm in results.pose_landmarks.landmark:
+                    lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
+                st.session_state.persistent_landmarks = json.dumps(lm_list)
+        
+        st.session_state.persistent_avatar = active_image_base64
+        st.session_state.persistent_name = uploaded_file.name
+
+    # 저장된 아바타가 있는 경우 보관함에 표시 및 자동 적용
+    if st.session_state.persistent_avatar is not None:
+        st.caption(f"✨ 현재 아바타: {st.session_state.persistent_name}")
+        st.image(st.session_state.persistent_avatar, use_container_width=True)
+        active_image_base64 = st.session_state.persistent_avatar
+        landmarks_json = st.session_state.persistent_landmarks if st.session_state.persistent_landmarks else "null"
+        
+        if st.button("🗑️ 아바타 삭제하기"):
+            st.session_state.persistent_avatar = None
+            st.session_state.persistent_landmarks = None
+            st.session_state.persistent_name = None
             st.rerun()
     else:
-        st.info("아직 저장된 아바타 없음")
+        st.info("아직 저장된 아바타가 없습니다. 사진을 업로드해 주세요!")
     
     st.write("---")
     st.markdown("### 🎨 플레이어 설정")
-    uploaded_file = st.file_uploader("🖼️ 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
-    
     skin_color = st.selectbox(
         "✨ 네온 관절 컬러", 
         ["#ff9aa2", "#ffb7b2", "#ffdac1", "#e2f0cb", "#b5ead7", "#c7ceea"],
@@ -104,28 +134,9 @@ with col_panel:
         }[x]
     )
 
-# 사진 처리 및 관절 스캔
-if uploaded_file is not None:
-    image = Image.open(uploaded_file).convert("RGB")
-    
-    if uploaded_file.name not in [item["name"] for item in st.session_state.saved_avatars]:
-        st.session_state.saved_avatars.append({
-            "name": uploaded_file.name,
-            "image": image
-        })
-    
-    img_array = np.array(image)
-    with mp_pose.Pose(static_image_mode=True, model_complexity=1) as pose:
-        results = pose.process(img_array)
-        if results.pose_landmarks:
-            lm_list = []
-            for lm in results.pose_landmarks.landmark:
-                lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
-            landmarks_json = json.dumps(lm_list)
-
 with col_game:
     st.markdown("### 🦴 내 뼈다귀가 멈추지 않아!")
-    has_image = "true" if uploaded_file is not None else "false"
+    has_image = "true" if active_image_base64 is not None else "false"
     
     raw_html = """
     <!DOCTYPE html>
@@ -646,7 +657,6 @@ with col_game:
                         let obsTop = obstacleY;
                         let obsBottom = obstacleY + obstacleHeight;
 
-                        // ⭐ 머리(상단)부터 발끝까지 전체 몸통 충돌 박스 확장 (머리가 닿아도 사망)
                         let charLeft = charX - 22;
                         let charRight = charX + 22;
                         let charTop = isCrouching ? currentFloor - 45 : currentFloor - 105;
