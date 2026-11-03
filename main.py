@@ -225,7 +225,6 @@ with col_game:
                 }
             }
 
-            // localStorage에서 아바타 리스트 및 최고 기록 불러오기
             let savedListStr = localStorage.getItem("dino_avatar_list");
             let avatarList = savedListStr ? JSON.parse(savedListStr) : [];
 
@@ -255,10 +254,8 @@ with col_game:
                 poseLandmarks = avatarList[activeIndex].landmarks;
             }
 
-            // 최고 기록 불러오기
             let highScore = parseInt(localStorage.getItem("dino_high_score") || "0");
 
-            // 하단 보관함 UI 렌더링
             const panel = document.getElementById("avatarPanel");
             const thumbContainer = document.getElementById("thumbContainer");
 
@@ -731,7 +728,6 @@ with col_game:
                             charTop < obsBottom
                         ) {
                             isGameOver = true;
-                            // 최고 기록 갱신 체크 및 저장
                             if (score > highScore) {
                                 highScore = score;
                                 localStorage.setItem("dino_high_score", highScore);
@@ -777,11 +773,25 @@ with col_game:
                     ctx.fillStyle = "#f8fafc";
                     ctx.font = "bold 14px 'Quicksand', sans-serif";
                     ctx.textAlign = "left";
-                    ctx.fillText("⭐ SCORE: " + score + " | 🏆 BEST: " + highScore + " [" + themeNames[themeLevel] + "]", 20, 35);
+                    ctx.fillText("⭐ SCORE: " + score + " [" + themeNames[themeLevel] + "]", 20, 35);
 
                     ctx.fillStyle = "#b5ead7";
                     ctx.font = "12px 'Quicksand', sans-serif";
                     ctx.fillText("⌨️ Space(x2): 2단점프 | Ctrl: 숙이기 | ESC: 일시정지", 360, 35);
+
+                    // ⭐ 우측 하단에 점수 및 최고 기록 표시
+                    ctx.fillStyle = "rgba(35, 35, 54, 0.75)";
+                    ctx.fillRect(750, 460, 180, 45);
+                    ctx.strokeStyle = "#ffdac1";
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(750, 460, 180, 45);
+
+                    ctx.fillStyle = "#ffdac1";
+                    ctx.font = "bold 13px 'Quicksand', sans-serif";
+                    ctx.textAlign = "left";
+                    ctx.fillText("🏆 BEST: " + highScore, 765, 480);
+                    ctx.fillStyle = "#b5ead7";
+                    ctx.fillText("⭐ NOW: " + score, 765, 498);
 
                     if (isGameOver) {
                         ctx.fillStyle = "rgba(30, 30, 47, 0.92)";
