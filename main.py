@@ -65,11 +65,9 @@ st.markdown("""
 
 mp_pose = mp.solutions.pose
 
-# 세션 상태 초기화 (서버 세션용)
-if "persistent_avatar" not in st.session_state:
-    st.session_state.persistent_avatar = None
-if "persistent_landmarks" not in st.session_state:
-    st.session_state.persistent_landmarks = None
+# 세션 상태에 아바타 리스트 초기화
+if "saved_avatar_list" not in st.session_state:
+    st.session_state.saved_avatar_list = []
 
 # 2. 레이아웃 비율 조정
 col_game, col_panel = st.columns([2.8, 1])
@@ -79,14 +77,15 @@ with col_panel:
     
     uploaded_file = st.file_uploader("🖼️ 새 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
     
+    current_img_base64 = "null"
+    current_landmarks_json = "null"
+
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
-        
-        # 이미지를 base64 문자열로 변환
         buffered = io.BytesIO()
         image.save(buffered, format="JPEG")
         img_str = base64.b64encode(buffered.getvalue()).decode()
-        st.session_state.persistent_avatar = f"data:image/jpeg;base64,{img_str}"
+        current_img_base64 = f"data:image/jpeg;base64,{img_str}"
 
         # MediaPipe 관절 스캔
         img_array = np.array(image)
@@ -96,19 +95,41 @@ with col_panel:
                 lm_list = []
                 for lm in results.pose_landmarks.landmark:
                     lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
-                st.session_state.persistent_landmarks = json.dumps(lm_list)
-
-    # 보관함에 아바타가 있으면 화면에 표시
-    if st.session_state.persistent_avatar is not None:
-        st.caption("✨ 현재 등록된 아바타")
-        st.image(st.session_state.persistent_avatar, use_container_width=True)
+                current_landmarks_json = json.dumps(lm_list)
         
-        if st.button("🗑️ 아바타 삭제하기"):
-            st.session_state.persistent_avatar = None
-            st.session_state.persistent_landmarks = None
+        # 세션 리스트에 중복 없이 추가
+        new_item = {
+            "name": uploaded_file.name,
+            "image": current_img_base64,
+            "landmarks": current_landmarks_json
+        }
+        if not any(d['name'] == uploaded_file.name for d in st.session_state.saved_avatar_list):
+            st.session_state.saved_avatar_list.append(new_item)
+
+    # 보관함에 저장된 이미지 목록 표시
+    if len(st.session_state.saved_avatar_list) > 0:
+        st.caption(f"총 {len(st.session_state.saved_avatar_list)}개의 아바타 보관 중!")
+        for idx, avatar in enumerate(st.session_state.saved_avatar_list):
+            with st.expander(f"✨ #{idx+1} {avatar['name'][:12]}"):
+                st.image(avatar['image'], use_container_width=True)
+                if st.button(f"🎮 이 아바타로 플레이", key=f"select_{idx}"):
+                    st.session_state.active_avatar = avatar
+                    st.rerun()
+        
+        if st.button("🗑️ 보관함 전체 비우기"):
+            st.session_state.saved_avatar_list = []
+            if "active_avatar" in st.session_state:
+                del st.session_state.active_avatar
             st.rerun()
     else:
-        st.info("아직 저장된 아바타가 없습니다. 사진을 업로드해 주세요!")
+        st.info("저장된 아바타가 없습니다. 사진을 업로드해 주세요!")
+
+    # 활성 아바타 설정 (기본은 가장 최근 아바타)
+    if "active_avatar" not in st.session_state and len(st.session_state.saved_avatar_list) > 0:
+        st.session_state.active_avatar = st.session_state.saved_avatar_list[-1]
+
+    active_img = st.session_state.active_avatar['image'] if "active_avatar" in st.session_state else "null"
+    active_lm = st.session_state.active_avatar['landmarks'] if "active_avatar" in st.session_state else "null"
 
     st.write("---")
     st.markdown("### 🎨 플레이어 설정")
@@ -128,8 +149,8 @@ with col_panel:
 with col_game:
     st.markdown("### 🦴 내 뼈다귀가 멈추지 않아!")
     
-    py_image = f"'{st.session_state.persistent_avatar}'" if st.session_state.persistent_avatar else "null"
-    py_landmarks = f"'{st.session_state.persistent_landmarks}'" if st.session_state.persistent_landmarks else "null"
+    py_image = f"'{active_img}'" if active_img != "null" else "null"
+    py_landmarks = f"'{active_lm}'" if active_lm != "null" else "null"
 
     raw_html = """
     <!DOCTYPE html>
@@ -209,14 +230,14 @@ with col_game:
             let pyLandmarks = PY_LANDMARKS_PLACEHOLDER;
 
             if (pyImage && pyImage !== "null") {
-                localStorage.setItem("dino_saved_avatar", pyImage);
+                localStorage.setItem("dino_active_avatar", pyImage);
                 if (pyLandmarks && pyLandmarks !== "null") {
-                    localStorage.setItem("dino_saved_landmarks", pyLandmarks);
+                    localStorage.setItem("dino_active_landmarks", pyLandmarks);
                 }
             }
 
-            let activeImageBase64 = localStorage.getItem("dino_saved_avatar");
-            let savedLmStr = localStorage.getItem("dino_saved_landmarks");
+            let activeImageBase64 = localStorage.getItem("dino_active_avatar");
+            let savedLmStr = localStorage.getItem("dino_active_landmarks");
             
             let hasImage = (activeImageBase64 && activeImageBase64 !== "null") ? true : false;
             let poseLandmarks = null;
