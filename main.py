@@ -65,10 +65,6 @@ st.markdown("""
 
 mp_pose = mp.solutions.pose
 
-# 세션 상태에 아바타 리스트 초기화
-if "saved_avatar_list" not in st.session_state:
-    st.session_state.saved_avatar_list = []
-
 # 2. 레이아웃 비율 조정
 col_game, col_panel = st.columns([2.8, 1])
 
@@ -77,59 +73,30 @@ with col_panel:
     
     uploaded_file = st.file_uploader("🖼️ 새 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
     
-    current_img_base64 = "null"
-    current_landmarks_json = "null"
+    new_avatar_json = "null"
 
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
         buffered = io.BytesIO()
         image.save(buffered, format="JPEG")
         img_str = base64.b64encode(buffered.getvalue()).decode()
-        current_img_base64 = f"data:image/jpeg;base64,{img_str}"
+        img_base64 = f"data:image/jpeg;base64,{img_str}"
 
         # MediaPipe 관절 스캔
         img_array = np.array(image)
+        lm_list = []
         with mp_pose.Pose(static_image_mode=True, model_complexity=1) as pose:
             results = pose.process(img_array)
             if results.pose_landmarks:
-                lm_list = []
                 for lm in results.pose_landmarks.landmark:
                     lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
-                current_landmarks_json = json.dumps(lm_list)
         
-        # 세션 리스트에 중복 없이 추가
-        new_item = {
+        new_avatar_data = {
             "name": uploaded_file.name,
-            "image": current_img_base64,
-            "landmarks": current_landmarks_json
+            "image": img_base64,
+            "landmarks": lm_list
         }
-        if not any(d['name'] == uploaded_file.name for d in st.session_state.saved_avatar_list):
-            st.session_state.saved_avatar_list.append(new_item)
-
-    # 보관함에 저장된 이미지 목록 표시
-    if len(st.session_state.saved_avatar_list) > 0:
-        st.caption(f"총 {len(st.session_state.saved_avatar_list)}개의 아바타 보관 중!")
-        for idx, avatar in enumerate(st.session_state.saved_avatar_list):
-            with st.expander(f"✨ #{idx+1} {avatar['name'][:12]}"):
-                st.image(avatar['image'], use_container_width=True)
-                if st.button(f"🎮 이 아바타로 플레이", key=f"select_{idx}"):
-                    st.session_state.active_avatar = avatar
-                    st.rerun()
-        
-        if st.button("🗑️ 보관함 전체 비우기"):
-            st.session_state.saved_avatar_list = []
-            if "active_avatar" in st.session_state:
-                del st.session_state.active_avatar
-            st.rerun()
-    else:
-        st.info("저장된 아바타가 없습니다. 사진을 업로드해 주세요!")
-
-    # 활성 아바타 설정 (기본은 가장 최근 아바타)
-    if "active_avatar" not in st.session_state and len(st.session_state.saved_avatar_list) > 0:
-        st.session_state.active_avatar = st.session_state.saved_avatar_list[-1]
-
-    active_img = st.session_state.active_avatar['image'] if "active_avatar" in st.session_state else "null"
-    active_lm = st.session_state.active_avatar['landmarks'] if "active_avatar" in st.session_state else "null"
+        new_avatar_json = json.dumps(new_avatar_data)
 
     st.write("---")
     st.markdown("### 🎨 플레이어 설정")
@@ -149,8 +116,7 @@ with col_panel:
 with col_game:
     st.markdown("### 🦴 내 뼈다귀가 멈추지 않아!")
     
-    py_image = f"'{active_img}'" if active_img != "null" else "null"
-    py_landmarks = f"'{active_lm}'" if active_lm != "null" else "null"
+    py_new_avatar = f"'{new_avatar_json}'" if new_avatar_json != "null" else "null"
 
     raw_html = """
     <!DOCTYPE html>
@@ -182,11 +148,44 @@ with col_game:
             max-width: 950px;
             height: auto;
         }
+        .panel-box {
+            background: rgba(35, 35, 54, 0.85);
+            border: 2px solid #ffdac1;
+            border-radius: 12px;
+            padding: 10px;
+            margin-top: 10px;
+            max-width: 950px;
+            text-align: left;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            align-items: center;
+        }
+        .avatar-thumb {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #ffb7b2;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .avatar-thumb:hover {
+            transform: scale(1.08);
+            border-color: #ffdac1;
+        }
+        .avatar-thumb.active {
+            border: 3px solid #ffdf00;
+        }
     </style>
     </head>
     <body>
         <div class="game-container">
             <canvas id="gameCanvas" width="950" height="520"></canvas>
+            <div id="avatarPanel" class="panel-box" style="display: none;">
+                <span style="font-size: 13px; font-weight: bold; color: #ffdac1; white-space: nowrap;">✨ 보관함:</span>
+                <div id="thumbContainer" style="display: flex; gap: 8px; overflow-x: auto;"></div>
+            </div>
         </div>
 
         <script>
@@ -226,29 +225,55 @@ with col_game:
                 }
             }
 
-            let pyImage = PY_IMAGE_PLACEHOLDER;
-            let pyLandmarks = PY_LANDMARKS_PLACEHOLDER;
+            // localStorage에서 아바타 리스트 불러오기 및 저장 관리
+            let savedListStr = localStorage.getItem("dino_avatar_list");
+            let avatarList = savedListStr ? JSON.parse(savedListStr) : [];
 
-            if (pyImage && pyImage !== "null") {
-                localStorage.setItem("dino_active_avatar", pyImage);
-                if (pyLandmarks && pyLandmarks !== "null") {
-                    localStorage.setItem("dino_active_landmarks", pyLandmarks);
+            let pyNewData = PY_NEW_AVATAR_PLACEHOLDER;
+            if (pyNewData && pyNewData !== "null") {
+                try {
+                    let newItem = typeof pyNewData === 'string' ? JSON.parse(pyNewData) : pyNewData;
+                    // 중복 체크 후 추가
+                    if (!avatarList.some(item => item.name === newItem.name)) {
+                        avatarList.push(newItem);
+                        localStorage.setItem("dino_avatar_list", JSON.stringify(avatarList));
+                    }
+                } catch(e) {
+                    console.log("Parse error:", e);
                 }
             }
 
-            let activeImageBase64 = localStorage.getItem("dino_active_avatar");
-            let savedLmStr = localStorage.getItem("dino_active_landmarks");
-            
-            let hasImage = (activeImageBase64 && activeImageBase64 !== "null") ? true : false;
+            let activeIndexStr = localStorage.getItem("dino_active_index");
+            let activeIndex = activeIndexStr ? parseInt(activeIndexStr) : (avatarList.length > 0 ? 0 : -1);
+
+            if (activeIndex >= avatarList.length) activeIndex = avatarList.length - 1;
+
+            let hasImage = avatarList.length > 0 && activeIndex >= 0;
             let poseLandmarks = null;
-            
-            if (savedLmStr && savedLmStr !== "null") {
-                try {
-                    let parsed = JSON.parse(savedLmStr);
-                    poseLandmarks = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
-                } catch(e) {
-                    poseLandmarks = null;
-                }
+            let activeImageBase64 = null;
+
+            if (hasImage) {
+                activeImageBase64 = avatarList[activeIndex].image;
+                poseLandmarks = avatarList[activeIndex].landmarks;
+            }
+
+            // 하단 보관함 UI 렌더링
+            const panel = document.getElementById("avatarPanel");
+            const thumbContainer = document.getElementById("thumbContainer");
+
+            if (avatarList.length > 0) {
+                panel.style.display = "flex";
+                avatarList.forEach((avatar, idx) => {
+                    let img = document.createElement("img");
+                    img.src = avatar.image;
+                    img.className = "avatar-thumb" + (idx === activeIndex ? " active" : "");
+                    img.title = avatar.name;
+                    img.onclick = function() {
+                        localStorage.setItem("dino_active_index", idx);
+                        location.reload();
+                    };
+                    thumbContainer.appendChild(img);
+                });
             }
 
             let baseFloorY = 380;
@@ -636,7 +661,7 @@ with col_game:
                     ctx.fillStyle = "#ffb7b2";
                     ctx.font = "bold 20px 'Quicksand', sans-serif";
                     ctx.textAlign = "center";
-                    ctx.fillText("🐾 오른쪽 패널에서 내 사진을 업로드해 주세요!", canvas.width / 2, canvas.height / 2 - 15);
+                    ctx.fillText("🐾 상단에서 내 사진을 업로드해 주세요!", canvas.width / 2, canvas.height / 2 - 15);
                     ctx.fillStyle = "#b5ead7";
                     ctx.font = "14px 'Quicksand', sans-serif";
                     ctx.fillText("Upload a photo to start playing!", canvas.width / 2, canvas.height / 2 + 20);
@@ -818,8 +843,7 @@ with col_game:
     </html>
     """
 
-    game_html = raw_html.replace("PY_IMAGE_PLACEHOLDER", py_image)
-    game_html = game_html.replace("PY_LANDMARKS_PLACEHOLDER", py_landmarks)
+    game_html = raw_html.replace("PY_NEW_AVATAR_PLACEHOLDER", py_new_avatar)
     game_html = game_html.replace("SKIN_COLOR_PLACEHOLDER", skin_color)
 
-    components.html(game_html, height=540)
+    components.html(game_html, height=580)
