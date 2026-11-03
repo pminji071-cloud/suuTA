@@ -65,6 +65,12 @@ st.markdown("""
 
 mp_pose = mp.solutions.pose
 
+# 세션 상태 초기화 (서버 세션용)
+if "persistent_avatar" not in st.session_state:
+    st.session_state.persistent_avatar = None
+if "persistent_landmarks" not in st.session_state:
+    st.session_state.persistent_landmarks = None
+
 # 2. 레이아웃 비율 조정
 col_game, col_panel = st.columns([2.8, 1])
 
@@ -73,16 +79,16 @@ with col_panel:
     
     uploaded_file = st.file_uploader("🖼️ 새 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
     
-    new_image_base64 = "null"
-    new_landmarks_json = "null"
-
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
+        
+        # 이미지를 base64 문자열로 변환
         buffered = io.BytesIO()
         image.save(buffered, format="JPEG")
         img_str = base64.b64encode(buffered.getvalue()).decode()
-        new_image_base64 = f"'{base64.b64encode(buffered.getvalue()).decode()}'"
+        st.session_state.persistent_avatar = f"data:image/jpeg;base64,{img_str}"
 
+        # MediaPipe 관절 스캔
         img_array = np.array(image)
         with mp_pose.Pose(static_image_mode=True, model_complexity=1) as pose:
             results = pose.process(img_array)
@@ -90,7 +96,19 @@ with col_panel:
                 lm_list = []
                 for lm in results.pose_landmarks.landmark:
                     lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
-                new_landmarks_json = json.dumps(json.dumps(lm_list))
+                st.session_state.persistent_landmarks = json.dumps(lm_list)
+
+    # 보관함에 아바타가 있으면 화면에 표시
+    if st.session_state.persistent_avatar is not None:
+        st.caption("✨ 현재 등록된 아바타")
+        st.image(st.session_state.persistent_avatar, use_container_width=True)
+        
+        if st.button("🗑️ 아바타 삭제하기"):
+            st.session_state.persistent_avatar = None
+            st.session_state.persistent_landmarks = None
+            st.rerun()
+    else:
+        st.info("아직 저장된 아바타가 없습니다. 사진을 업로드해 주세요!")
 
     st.write("---")
     st.markdown("### 🎨 플레이어 설정")
@@ -110,7 +128,9 @@ with col_panel:
 with col_game:
     st.markdown("### 🦴 내 뼈다귀가 멈추지 않아!")
     
-    # 파이썬 문자열 치환 방식으로 변경하여 f-string 중괄호 충돌 원천 방지
+    py_image = f"'{st.session_state.persistent_avatar}'" if st.session_state.persistent_avatar else "null"
+    py_landmarks = f"'{st.session_state.persistent_landmarks}'" if st.session_state.persistent_landmarks else "null"
+
     raw_html = """
     <!DOCTYPE html>
     <html>
@@ -188,20 +208,20 @@ with col_game:
             let pyImage = PY_IMAGE_PLACEHOLDER;
             let pyLandmarks = PY_LANDMARKS_PLACEHOLDER;
 
-            if (pyImage) {
+            if (pyImage && pyImage !== "null") {
                 localStorage.setItem("dino_saved_avatar", pyImage);
-                if (pyLandmarks) {
-                    localStorage.setItem("dino_saved_landmarks", JSON.stringify(pyLandmarks));
+                if (pyLandmarks && pyLandmarks !== "null") {
+                    localStorage.setItem("dino_saved_landmarks", pyLandmarks);
                 }
             }
 
             let activeImageBase64 = localStorage.getItem("dino_saved_avatar");
             let savedLmStr = localStorage.getItem("dino_saved_landmarks");
             
-            let hasImage = activeImageBase64 ? true : false;
+            let hasImage = (activeImageBase64 && activeImageBase64 !== "null") ? true : false;
             let poseLandmarks = null;
             
-            if (savedLmStr) {
+            if (savedLmStr && savedLmStr !== "null") {
                 try {
                     let parsed = JSON.parse(savedLmStr);
                     poseLandmarks = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
@@ -777,8 +797,8 @@ with col_game:
     </html>
     """
 
-    game_html = raw_html.replace("PY_IMAGE_PLACEHOLDER", new_image_base64)
-    game_html = game_html.replace("PY_LANDMARKS_PLACEHOLDER", new_landmarks_json)
+    game_html = raw_html.replace("PY_IMAGE_PLACEHOLDER", py_image)
+    game_html = game_html.replace("PY_LANDMARKS_PLACEHOLDER", py_landmarks)
     game_html = game_html.replace("SKIN_COLOR_PLACEHOLDER", skin_color)
 
     components.html(game_html, height=540)
