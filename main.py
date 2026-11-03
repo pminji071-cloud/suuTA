@@ -68,30 +68,21 @@ mp_pose = mp.solutions.pose
 # 2. 레이아웃 비율 조정
 col_game, col_panel = st.columns([2.8, 1])
 
-landmarks_json = "null"
-active_image_base64 = None
-
 with col_panel:
     st.markdown("### 🐾 아바타 보관함")
     
-    # 브라우저 localStorage를 흉내 내어 Streamlit 세션에 영구 캐싱
-    if "persistent_avatar" not in st.session_state:
-        st.session_state.persistent_avatar = None
-        st.session_state.persistent_landmarks = None
-        st.session_state.persistent_name = None
-
     uploaded_file = st.file_uploader("🖼️ 새 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
+    
+    new_image_base64 = None
+    new_landmarks_json = None
 
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
-        
-        # PIL 이미지를 Base64 문자열로 변환하여 영구 저장
         buffered = io.BytesIO()
         image.save(buffered, format="JPEG")
         img_str = base64.b64encode(buffered.getvalue()).decode()
-        active_image_base64 = f"data:image/jpeg;base64,{img_str}"
+        new_image_base64 = f"data:image/jpeg;base64,{img_str}"
 
-        # MediaPipe 관절 스캔
         img_array = np.array(image)
         with mp_pose.Pose(static_image_mode=True, model_complexity=1) as pose:
             results = pose.process(img_array)
@@ -99,26 +90,8 @@ with col_panel:
                 lm_list = []
                 for lm in results.pose_landmarks.landmark:
                     lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
-                st.session_state.persistent_landmarks = json.dumps(lm_list)
-        
-        st.session_state.persistent_avatar = active_image_base64
-        st.session_state.persistent_name = uploaded_file.name
+                new_landmarks_json = json.dumps(lm_list)
 
-    # 저장된 아바타가 있는 경우 보관함에 표시 및 자동 적용
-    if st.session_state.persistent_avatar is not None:
-        st.caption(f"✨ 현재 아바타: {st.session_state.persistent_name}")
-        st.image(st.session_state.persistent_avatar, use_container_width=True)
-        active_image_base64 = st.session_state.persistent_avatar
-        landmarks_json = st.session_state.persistent_landmarks if st.session_state.persistent_landmarks else "null"
-        
-        if st.button("🗑️ 아바타 삭제하기"):
-            st.session_state.persistent_avatar = None
-            st.session_state.persistent_landmarks = None
-            st.session_state.persistent_name = None
-            st.rerun()
-    else:
-        st.info("아직 저장된 아바타가 없습니다. 사진을 업로드해 주세요!")
-    
     st.write("---")
     st.markdown("### 🎨 플레이어 설정")
     skin_color = st.selectbox(
@@ -136,14 +109,17 @@ with col_panel:
 
 with col_game:
     st.markdown("### 🦴 내 뼈다귀가 멈추지 않아!")
-    has_image = "true" if active_image_base64 is not None else "false"
     
-    raw_html = """
+    # 파이썬에서 새로 업로드된 데이터가 있으면 자바스크립트로 전달, 없으면 null 처리
+    py_uploaded_image = f"'{new_image_base64}'" if new_image_base64 else "null"
+    py_uploaded_landmarks = new_landmarks_json if new_landmarks_json else "null"
+
+    raw_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
     <style>
-        body { 
+        body {{ 
             background-color: transparent; 
             color: #f8fafc; 
             text-align: center; 
@@ -152,13 +128,13 @@ with col_game:
             padding: 0;
             overflow: hidden;
         }
-        .game-container {
+        .game-container {{
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
         }
-        canvas { 
+        canvas {{ 
             background: #232336; 
             border: 4px solid #ffb7b2; 
             border-radius: 20px; 
@@ -167,7 +143,7 @@ with col_game:
             width: 100%;
             max-width: 950px;
             height: auto;
-        }
+        }}
     </style>
     </head>
     <body>
@@ -181,14 +157,14 @@ with col_game:
 
             let audioCtx = null;
 
-            function initAudio() {
-                if (!audioCtx) {
+            function initAudio() {{
+                if (!audioCtx) {{
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-            }
+                }}
+            }}
 
-            function playPpyongSound() {
-                try {
+            function playPpyongSound() {{
+                try {{
                     initAudio();
                     if (!audioCtx) return;
                     
@@ -207,13 +183,37 @@ with col_game:
 
                     osc.start();
                     osc.stop(audioCtx.currentTime + 0.15);
-                } catch(e) {
+                }} catch(e) {{
                     console.log("Audio play error:", e);
-                }
-            }
+                }}
+            }}
 
-            let hasImage = HAS_IMAGE_PLACEHOLDER;
-            let poseLandmarks = LANDMARKS_DATA_PLACEHOLDER;
+            // ⭐ 브라우저 localStorage와 연동하여 아바타 영구 저장 및 불러오기
+            let pyImage = {py_uploaded_image};
+            let pyLandmarks = {py_uploaded_landmarks};
+
+            if (pyImage) {{
+                localStorage.setItem("dino_saved_avatar", pyImage);
+                if (pyLandmarks) {{
+                    localStorage.setItem("dino_saved_landmarks", JSON.stringify(pyLandmarks));
+                }}
+            }}
+
+            let activeImageBase64 = localStorage.getItem("dino_saved_avatar");
+            let savedLmStr = localStorage.getItem("dino_saved_landmarks");
+            
+            let hasImage = activeImageBase64 ? true : false;
+            let poseLandmarks = null;
+            
+            if (savedLmStr) {{
+                try {{
+                    // JSON 문자열 파싱 처리
+                    let parsed = JSON.parse(savedLmStr);
+                    poseLandmarks = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+                }} catch(e) {{
+                    poseLandmarks = null;
+                }}
+            }}
 
             let baseFloorY = 380;
             let floorY = 380;
@@ -249,86 +249,86 @@ with col_game:
             let celebrationText = "";
             let celebrationTimer = 0;
             const targetMilestones = [500, 1000, 1500, 1800, 2000, 5000, 7777, 10000];
-            let achievedMilestones = {};
+            let achievedMilestones = {{}};
 
             const caligoShapes = ["crystal", "spike", "core", "blade"];
             const caligoColors = ["#ff9aa2", "#ffb7b2", "#ffdac1", "#e2f0cb", "#b5ead7", "#c7ceea"];
 
-            function calculateSpeed() {
+            function calculateSpeed() {{
                 let baseSpeed = 5.0;
-                if (score >= 2000) {
+                if (score >= 2000) {{
                     let extraTier = Math.floor((score - 2000) / 500) + 1;
                     return baseSpeed * Math.pow(2, extraTier);
-                } else if (score >= 1800) {
+                }} else if (score >= 1800) {{
                     return baseSpeed * 2.2;
-                } else if (score >= 1500) {
+                }} else if (score >= 1500) {{
                     return baseSpeed * 1.9;
-                } else if (score >= 1000) {
+                }} else if (score >= 1000) {{
                     return baseSpeed * 1.6;
-                } else if (score >= 500) {
+                }} else if (score >= 500) {{
                     return baseSpeed * 1.3;
-                } else {
+                }} else {{
                     return baseSpeed;
-                }
-            }
+                }}
+            }}
 
-            function resetObstacle() {
+            function resetObstacle() {{
                 obstacleWidth = Math.floor(30 + Math.random() * 30);
                 obstacleHeight = Math.floor(35 + Math.random() * 35);
                 
                 obstacleSpeed = calculateSpeed();
 
                 const isAir = Math.random() < 0.35;
-                if (isAir) {
+                if (isAir) {{
                     obstacleY = floorY - 110 + Math.random() * 30;
-                } else {
+                }} else {{
                     obstacleY = floorY - obstacleHeight;
-                }
+                }}
 
                 obstacleX = 950 + Math.random() * 350;
                 obstacleShape = caligoShapes[Math.floor(Math.random() * caligoShapes.length)];
                 obstacleColor = caligoColors[Math.floor(Math.random() * caligoColors.length)];
 
-                if (!starActive && Math.random() < 0.25) {
+                if (!starActive && Math.random() < 0.25) {{
                     starActive = true;
                     starX = 950 + Math.random() * 250;
                     starY = Math.random() < 0.5 ? floorY - 120 : floorY - 50; 
-                }
+                }}
 
-                if (score >= 300 && Math.random() < 0.35) {
+                if (score >= 300 && Math.random() < 0.35) {{
                     let offsets = [-45, -30, 20, 35];
                     targetFloorY = baseFloorY + offsets[Math.floor(Math.random() * offsets.length)];
-                } else {
+                }} else {{
                     targetFloorY = baseFloorY;
-                }
-            }
+                }}
+            }}
 
-            function startCountdown() {
+            function startCountdown() {{
                 isPaused = false;
                 isCountdown = true;
                 countdownValue = 3;
 
                 if (countdownTimer) clearInterval(countdownTimer);
 
-                countdownTimer = setInterval(function() {
+                countdownTimer = setInterval(function() {{
                     countdownValue--;
-                    if (countdownValue <= 0) {
+                    if (countdownValue <= 0) {{
                         clearInterval(countdownTimer);
                         isCountdown = false;
-                    }
-                }, 1000);
-            }
+                    }}
+                }}, 1000);
+            }}
 
-            function triggerJump() {
+            function triggerJump() {{
                 if (!hasImage || isPaused || isCountdown || isGameOver || isCrouching) return;
                 
-                if (jumpCount < maxJumps) {
+                if (jumpCount < maxJumps) {{
                     jumpCount++;
                     jumpVelocity = -18;
-                }
-            }
+                }}
+            }}
 
-            canvas.addEventListener("click", function(e) {
+            canvas.addEventListener("click", function(e) {{
                 initAudio();
                 if (!hasImage) return;
 
@@ -336,30 +336,30 @@ with col_game:
                 const mouseX = e.clientX - rect.left;
                 const mouseY = e.clientY - rect.top;
 
-                if (isGameOver) {
+                if (isGameOver) {{
                     isGameOver = false;
                     score = 0;
                     floorY = baseFloorY;
                     targetFloorY = baseFloorY;
                     starActive = false;
-                    achievedMilestones = {};
+                    achievedMilestones = {{}};
                     resetObstacle();
                     jumpHeight = 0;
                     jumpCount = 0;
                     isCrouching = false;
                     return;
-                }
+                }}
 
-                if (isPaused) {
-                    if (mouseX >= 375 && mouseX <= 575 && mouseY >= 230 && mouseY <= 270) {
+                if (isPaused) {{
+                    if (mouseX >= 375 && mouseX <= 575 && mouseY >= 230 && mouseY <= 270) {{
                         startCountdown();
-                    }
-                    else if (mouseX >= 375 && mouseX <= 575 && mouseY >= 290 && mouseY <= 330) {
+                    }}
+                    else if (mouseX >= 375 && mouseX <= 575 && mouseY >= 290 && mouseY <= 330) {{
                         score = 0;
                         floorY = baseFloorY;
                         targetFloorY = baseFloorY;
                         starActive = false;
-                        achievedMilestones = {};
+                        achievedMilestones = {{}};
                         resetObstacle();
                         jumpHeight = 0;
                         jumpCount = 0;
@@ -367,57 +367,57 @@ with col_game:
                         isPaused = false;
                         isCountdown = false;
                         if (countdownTimer) clearInterval(countdownTimer);
-                    }
+                    }}
                     return;
-                }
+                }}
 
                 triggerJump();
-            });
+            }});
 
-            window.addEventListener("keydown", function(e) {
+            window.addEventListener("keydown", function(e) {{
                 initAudio();
                 if (!hasImage) return;
 
-                if (e.code === "Space") {
+                if (e.code === "Space") {{
                     e.preventDefault();
-                    if (isGameOver) {
+                    if (isGameOver) {{
                         isGameOver = false;
                         score = 0;
                         floorY = baseFloorY;
                         targetFloorY = baseFloorY;
                         starActive = false;
-                        achievedMilestones = {};
+                        achievedMilestones = {{}};
                         resetObstacle();
                         jumpHeight = 0;
                         jumpCount = 0;
                         isCrouching = false;
                         return;
-                    }
+                    }}
                     triggerJump();
-                }
+                }}
 
-                if (e.code === "ControlLeft" || e.code === "ControlRight") {
+                if (e.code === "ControlLeft" || e.code === "ControlRight") {{
                     e.preventDefault();
-                    if (jumpCount === 0 && !isPaused && !isCountdown && !isGameOver) {
+                    if (jumpCount === 0 && !isPaused && !isCountdown && !isGameOver) {{
                         isCrouching = true;
-                    }
-                }
+                    }}
+                }}
 
-                if (e.key === "Escape" && !isGameOver) {
-                    if (isPaused) {
+                if (e.key === "Escape" && !isGameOver) {{
+                    if (isPaused) {{
                         startCountdown();
-                    } else {
+                    }} else {{
                         isPaused = true;
                         if (countdownTimer) clearInterval(countdownTimer);
                         isCountdown = false;
-                    }
-                }
-            });
+                    }}
+                }}
+            }});
 
-            window.addEventListener("keyup", function(e) {
-                if (e.code === "ControlLeft" || e.code === "ControlRight") {
+            window.addEventListener("keyup", function(e) {{
+                if (e.code === "ControlLeft" || e.code === "ControlRight") {{
                     isCrouching = false;
-                }
+                }}
             });
 
             const POSE_CONNECTIONS = [
@@ -425,74 +425,74 @@ with col_game:
                 [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28]
             ];
 
-            function drawPoseCharacter(x, currentFloorY, landmarks, crouching) {
-                ctx.strokeStyle = "SKIN_COLOR_PLACEHOLDER";
-                ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
+            function drawPoseCharacter(x, currentFloorY, landmarks, crouching) {{
+                ctx.strokeStyle = "{skin_color}";
+                ctx.fillStyle = "{skin_color}";
                 ctx.lineWidth = 4;
                 ctx.lineCap = "round";
-                ctx.shadowColor = "SKIN_COLOR_PLACEHOLDER";
+                ctx.shadowColor = "{skin_color}";
                 ctx.shadowBlur = 8;
 
                 let scale = crouching ? 65 : 100;
 
-                if (landmarks && landmarks.length > 0) {
+                if (landmarks && landmarks.length > 0) {{
                     let maxY = -999;
-                    landmarks.forEach(function(lm, idx) {
-                        if ([27, 28, 29, 30, 31, 32].indexOf(idx) !== -1 && lm.visibility > 0.2) {
+                    landmarks.forEach(function(lm, idx) {{
+                        if ([27, 28, 29, 30, 31, 32].indexOf(idx) !== -1 && lm.visibility > 0.2) {{
                             if (lm.y > maxY) maxY = lm.y;
-                        }
+                        }}
                     });
 
-                    if (maxY === -999) {
-                        if (landmarks[23] && landmarks[24]) {
+                    if (maxY === -999) {{
+                        if (landmarks[23] && landmarks[24]) {{
                             maxY = Math.max(landmarks[23].y, landmarks[24].y) + 0.3;
-                        } else {
+                        }} else {{
                             maxY = 0.85;
-                        }
-                    }
+                        }}
+                    }}
 
                     let feetYScaled = (maxY - 0.5) * scale;
                     let calculatedOffsetY = currentFloorY - feetYScaled;
 
-                    POSE_CONNECTIONS.forEach(function(pair) {
+                    POSE_CONNECTIONS.forEach(function(pair) {{
                         const i = pair[0];
                         const j = pair[1];
                         const pt1 = landmarks[i];
                         const pt2 = landmarks[j];
-                        if (pt1 && pt2 && pt1.visibility > 0.3 && pt2.visibility > 0.3) {
+                        if (pt1 && pt2 && pt1.visibility > 0.3 && pt2.visibility > 0.3) {{
                             ctx.beginPath();
                             ctx.moveTo(x + (pt1.x - 0.5) * scale, calculatedOffsetY + (pt1.y - 0.5) * scale);
                             ctx.lineTo(x + (pt2.x - 0.5) * scale, calculatedOffsetY + (pt2.y - 0.5) * scale);
                             ctx.stroke();
-                        }
+                        }}
                     });
 
                     const nose = landmarks[0];
-                    if (nose) {
+                    if (nose) {{
                         ctx.beginPath();
                         ctx.arc(x + (nose.x - 0.5) * scale, calculatedOffsetY + (nose.y - 0.5) * scale - 10, 14, 0, Math.PI * 2);
                         ctx.fill();
-                    }
+                    }}
 
-                    landmarks.forEach(function(lm, idx) {
-                        if ([11,12,13,14,15,16,23,24,25,26,27,28].indexOf(idx) !== -1 && lm.visibility > 0.3) {
+                    landmarks.forEach(function(lm, idx) {{
+                        if ([11,12,13,14,15,16,23,24,25,26,27,28].indexOf(idx) !== -1 && lm.visibility > 0.3) {{
                             ctx.beginPath();
                             ctx.arc(x + (lm.x - 0.5) * scale, calculatedOffsetY + (lm.y - 0.5) * scale, 4, 0, Math.PI * 2);
                             ctx.fillStyle = "#ffffff";
                             ctx.fill();
-                            ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
-                        }
+                            ctx.fillStyle = "{skin_color}";
+                        }}
                     });
-                } else {
+                }} else {{
                     let baseOffsetY = crouching ? currentFloorY - 20 : currentFloorY - 50;
                     ctx.beginPath(); ctx.arc(x, baseOffsetY - 30, 14, 0, Math.PI * 2); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(x, baseOffsetY - 16); ctx.lineTo(x, baseOffsetY + 15); ctx.stroke();
                     ctx.beginPath(); ctx.moveTo(x - 15, baseOffsetY - 8); ctx.lineTo(x + 15, baseOffsetY - 8); ctx.stroke();
-                }
+                }}
                 ctx.shadowBlur = 0;
-            }
+            }}
 
-            function drawStar(cx, cy, spikes, outerRadius, innerRadius) {
+            function drawStar(cx, cy, spikes, outerRadius, innerRadius) {{
                 let rot = (Math.PI / 2) * 3;
                 let x = cx;
                 let y = cy;
@@ -503,7 +503,7 @@ with col_game:
                 ctx.shadowBlur = 15;
                 ctx.beginPath();
                 ctx.moveTo(cx, cy - outerRadius);
-                for (let i = 0; i < spikes; i++) {
+                for (let i = 0; i < spikes; i++) {{
                     x = cx + Math.cos(rot) * outerRadius;
                     y = cy + Math.sin(rot) * outerRadius;
                     ctx.lineTo(x, y);
@@ -513,19 +513,19 @@ with col_game:
                     y = cy + Math.sin(rot) * innerRadius;
                     ctx.lineTo(x, y);
                     rot += step;
-                }
+                }}
                 ctx.lineTo(cx, cy - outerRadius);
                 ctx.closePath();
                 ctx.fill();
                 ctx.shadowBlur = 0;
-            }
+            }}
 
-            function drawObstacle() {
+            function drawObstacle() {{
                 ctx.fillStyle = obstacleColor;
                 ctx.shadowColor = "#ffdac1";
                 ctx.shadowBlur = 10;
 
-                if (obstacleShape === "crystal") {
+                if (obstacleShape === "crystal") {{
                     ctx.beginPath();
                     ctx.moveTo(obstacleX + obstacleWidth / 2, obstacleY);
                     ctx.lineTo(obstacleX + obstacleWidth, obstacleY + obstacleHeight * 0.4);
@@ -533,14 +533,14 @@ with col_game:
                     ctx.lineTo(obstacleX, obstacleY + obstacleHeight * 0.4);
                     ctx.closePath();
                     ctx.fill();
-                } else if (obstacleShape === "spike") {
+                }} else if (obstacleShape === "spike") {{
                     ctx.beginPath();
                     ctx.moveTo(obstacleX + obstacleWidth / 2, obstacleY);
                     ctx.lineTo(obstacleX + obstacleWidth, obstacleY + obstacleHeight);
                     ctx.lineTo(obstacleX, obstacleY + obstacleHeight);
                     ctx.closePath();
                     ctx.fill();
-                } else if (obstacleShape === "core") {
+                }} else if (obstacleShape === "core") {{
                     let radius = obstacleWidth / 2;
                     ctx.beginPath();
                     ctx.arc(obstacleX + radius, obstacleY + radius, radius, 0, Math.PI * 2);
@@ -549,7 +549,7 @@ with col_game:
                     ctx.beginPath();
                     ctx.arc(obstacleX + radius, obstacleY + radius, radius * 0.35, 0, Math.PI * 2);
                     ctx.fill();
-                } else if (obstacleShape === "blade") {
+                }} else if (obstacleShape === "blade") {{
                     let cx = obstacleX + obstacleWidth / 2;
                     let cy = obstacleY + obstacleHeight / 2;
                     let size = obstacleWidth / 2;
@@ -564,15 +564,15 @@ with col_game:
                     ctx.lineTo(cx - size * 0.5, cy - size * 0.5);
                     ctx.closePath();
                     ctx.fill();
-                }
+                }}
 
                 ctx.strokeStyle = "#ffffff";
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 ctx.shadowBlur = 0;
-            }
+            }}
 
-            function drawGorgeousBackground(themeLevel) {
+            function drawGorgeousBackground(themeLevel) {{
                 let bgGrad = ctx.createLinearGradient(0, 0, 0, 520);
                 bgGrad.addColorStop(0, "#1e1e2f");
                 bgGrad.addColorStop(1, "#3b3b58");
@@ -581,10 +581,10 @@ with col_game:
 
                 ctx.fillStyle = "rgba(255, 222, 215, 0.4)";
                 let stars = [ [70,50], [180,100], [330,40], [450,130], [560,70], [680,150], [820,55], [100,210], [400,260], [800,180] ];
-                stars.forEach(s => { ctx.fillRect(s[0], s[1], 3, 3); });
+                stars.forEach(s => {{ ctx.fillRect(s[0], s[1], 3, 3); }});
             }
 
-            function update() {
+            function update() {{
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 let themeLevel = Math.floor(score / 1000) % 6;
@@ -596,7 +596,7 @@ with col_game:
                 ctx.lineWidth = 4;
                 ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(950, floorY); ctx.stroke();
 
-                if (!hasImage) {
+                if (!hasImage) {{
                     ctx.fillStyle = "#ffb7b2";
                     ctx.font = "bold 20px 'Quicksand', sans-serif";
                     ctx.textAlign = "center";
@@ -604,38 +604,38 @@ with col_game:
                     ctx.fillStyle = "#b5ead7";
                     ctx.font = "14px 'Quicksand', sans-serif";
                     ctx.fillText("Upload a photo to start playing!", canvas.width / 2, canvas.height / 2 + 20);
-                } else {
-                    if (!isPaused && !isCountdown && !isGameOver) {
-                        if (jumpCount > 0) {
+                }} else {{
+                    if (!isPaused && !isCountdown && !isGameOver) {{
+                        if (jumpCount > 0) {{
                             jumpHeight += jumpVelocity;
                             jumpVelocity += 1.05;
                             
-                            if (jumpHeight >= 0) {
+                            if (jumpHeight >= 0) {{
                                 jumpHeight = 0;
                                 jumpCount = 0;
                                 jumpVelocity = 0;
-                            }
-                        }
+                            }}
+                        }}
 
                         obstacleX -= obstacleSpeed;
-                        if (obstacleX < -60) {
+                        if (obstacleX < -60) {{
                             resetObstacle();
                             score += 100;
-                        }
+                        }}
 
-                        targetMilestones.forEach(m => {
-                            if (score >= m && !achievedMilestones[m]) {
+                        targetMilestones.forEach(m => {{
+                            if (score >= m && !achievedMilestones[m]) {{
                                 achievedMilestones[m] = true;
                                 celebrationText = "🎉 " + m + "점 돌파! 대단해요! 🎉";
                                 celebrationTimer = 90;
-                            }
-                        });
+                            }}
+                        }});
 
-                        if (starActive) {
+                        if (starActive) {{
                             starX -= obstacleSpeed;
-                            if (starX < -50) {
+                            if (starX < -50) {{
                                 starActive = false;
-                            }
+                            }}
 
                             let currentFloor = floorY + jumpHeight;
                             if (
@@ -643,13 +643,13 @@ with col_game:
                                 charX - 20 < starX + 15 &&
                                 currentFloor > starY - 30 &&
                                 currentFloor - 80 < starY + 15
-                            ) {
+                            ) {{
                                 score += 100; 
                                 starActive = false;
                                 starEffectTimer = 30;
                                 playPpyongSound();
-                            }
-                        }
+                            }}
+                        }}
 
                         let currentFloor = floorY + jumpHeight;
                         let obsLeft = obstacleX;
@@ -667,18 +667,18 @@ with col_game:
                             charLeft < obsRight &&
                             charBottom > obsTop &&
                             charTop < obsBottom
-                        ) {
+                        ) {{
                             isGameOver = true;
-                        }
-                    }
+                        }}
+                    }}
 
                     drawObstacle();
 
-                    if (starActive) {
+                    if (starActive) {{
                         drawStar(starX, starY, 5, 16, 8);
-                    }
+                    }}
 
-                    if (starEffectTimer > 0) {
+                    if (starEffectTimer > 0) {{
                         starEffectTimer--;
                         ctx.fillStyle = "#ffdf00";
                         ctx.font = "bold 18px 'Quicksand', sans-serif";
@@ -687,9 +687,9 @@ with col_game:
                         ctx.shadowBlur = 10;
                         ctx.fillText("🌟 BONUS x2 SCORE! 🌟", charX + 20, floorY + jumpHeight - 110);
                         ctx.shadowBlur = 0;
-                    }
+                    }}
 
-                    if (celebrationTimer > 0) {
+                    if (celebrationTimer > 0) {{
                         celebrationTimer--;
                         ctx.fillStyle = "rgba(255, 218, 193, 0.25)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -701,7 +701,7 @@ with col_game:
                         ctx.shadowBlur = 20;
                         ctx.fillText(celebrationText, canvas.width / 2, 130);
                         ctx.shadowBlur = 0;
-                    }
+                    }}
 
                     let currentFloor = floorY + jumpHeight;
                     drawPoseCharacter(charX, currentFloor, poseLandmarks, isCrouching);
@@ -716,7 +716,7 @@ with col_game:
                     ctx.font = "12px 'Quicksand', sans-serif";
                     ctx.fillText("⌨️ Space(x2): 2단점프 | Ctrl: 숙이기 | ESC: 일시정지", 360, 35);
 
-                    if (isGameOver) {
+                    if (isGameOver) {{
                         ctx.fillStyle = "rgba(30, 30, 47, 0.92)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -732,9 +732,9 @@ with col_game:
                         ctx.fillStyle = "#f8fafc";
                         ctx.font = "15px 'Quicksand', sans-serif";
                         ctx.fillText("클릭 또는 스페이스바로 다시 시작!", canvas.width / 2, canvas.height / 2 + 60);
-                    }
+                    }}
 
-                    if (isPaused) {
+                    if (isPaused) {{
                         ctx.fillStyle = "rgba(30, 30, 47, 0.9)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -753,9 +753,9 @@ with col_game:
                         ctx.fillRect(375, 290, 200, 40);
                         ctx.fillStyle = "#1e1e2f";
                         ctx.fillText("🔄 처음으로", canvas.width / 2, 315);
-                    }
+                    }}
 
-                    if (isCountdown) {
+                    if (isCountdown) {{
                         ctx.fillStyle = "rgba(30, 30, 47, 0.9)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -770,11 +770,11 @@ with col_game:
                         ctx.fillStyle = "#b5ead7";
                         ctx.font = "18px 'Quicksand', sans-serif";
                         ctx.fillText("준비하세요!", canvas.width / 2, canvas.height / 2 - 60);
-                    }
-                }
+                    }}
+                }}
 
                 requestAnimationFrame(update);
-            }
+            }}
 
             update();
         </script>
@@ -782,8 +782,4 @@ with col_game:
     </html>
     """
 
-    game_html = raw_html.replace("HAS_IMAGE_PLACEHOLDER", has_image)
-    game_html = game_html.replace("LANDMARKS_DATA_PLACEHOLDER", landmarks_json)
-    game_html = game_html.replace("SKIN_COLOR_PLACEHOLDER", skin_color)
-
-    components.html(game_html, height=540)
+    components.html(raw_html, height=540)
