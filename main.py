@@ -225,7 +225,7 @@ with col_game:
                 }
             }
 
-            // localStorage에서 아바타 리스트 불러오기 및 저장 관리
+            // localStorage에서 아바타 리스트 및 최고 기록 불러오기
             let savedListStr = localStorage.getItem("dino_avatar_list");
             let avatarList = savedListStr ? JSON.parse(savedListStr) : [];
 
@@ -233,7 +233,6 @@ with col_game:
             if (pyNewData && pyNewData !== "null") {
                 try {
                     let newItem = typeof pyNewData === 'string' ? JSON.parse(pyNewData) : pyNewData;
-                    // 중복 체크 후 추가
                     if (!avatarList.some(item => item.name === newItem.name)) {
                         avatarList.push(newItem);
                         localStorage.setItem("dino_avatar_list", JSON.stringify(avatarList));
@@ -245,7 +244,6 @@ with col_game:
 
             let activeIndexStr = localStorage.getItem("dino_active_index");
             let activeIndex = activeIndexStr ? parseInt(activeIndexStr) : (avatarList.length > 0 ? 0 : -1);
-
             if (activeIndex >= avatarList.length) activeIndex = avatarList.length - 1;
 
             let hasImage = avatarList.length > 0 && activeIndex >= 0;
@@ -256,6 +254,9 @@ with col_game:
                 activeImageBase64 = avatarList[activeIndex].image;
                 poseLandmarks = avatarList[activeIndex].landmarks;
             }
+
+            // 최고 기록 불러오기
+            let highScore = parseInt(localStorage.getItem("dino_high_score") || "0");
 
             // 하단 보관함 UI 렌더링
             const panel = document.getElementById("avatarPanel");
@@ -730,6 +731,11 @@ with col_game:
                             charTop < obsBottom
                         ) {
                             isGameOver = true;
+                            // 최고 기록 갱신 체크 및 저장
+                            if (score > highScore) {
+                                highScore = score;
+                                localStorage.setItem("dino_high_score", highScore);
+                            }
                         }
                     }
 
@@ -771,7 +777,7 @@ with col_game:
                     ctx.fillStyle = "#f8fafc";
                     ctx.font = "bold 14px 'Quicksand', sans-serif";
                     ctx.textAlign = "left";
-                    ctx.fillText("⭐ SCORE: " + score + " [" + themeNames[themeLevel] + "]", 20, 35);
+                    ctx.fillText("⭐ SCORE: " + score + " | 🏆 BEST: " + highScore + " [" + themeNames[themeLevel] + "]", 20, 35);
 
                     ctx.fillStyle = "#b5ead7";
                     ctx.font = "12px 'Quicksand', sans-serif";
@@ -784,15 +790,19 @@ with col_game:
                         ctx.fillStyle = "#ffb7b2";
                         ctx.font = "bold 36px 'Quicksand', sans-serif";
                         ctx.textAlign = "center";
-                        ctx.fillText("GAME OVER 🐾", canvas.width / 2, canvas.height / 2 - 25);
+                        ctx.fillText("GAME OVER 🐾", canvas.width / 2, canvas.height / 2 - 40);
+
+                        ctx.fillStyle = "#ffdf00";
+                        ctx.font = "bold 20px 'Quicksand', sans-serif";
+                        ctx.fillText("🏆 최고 기록: " + highScore, canvas.width / 2, canvas.height / 2);
 
                         ctx.fillStyle = "#b5ead7";
                         ctx.font = "18px 'Quicksand', sans-serif";
-                        ctx.fillText("Final Score: " + score, canvas.width / 2, canvas.height / 2 + 15);
+                        ctx.fillText("이번 점수: " + score, canvas.width / 2, canvas.height / 2 + 35);
 
                         ctx.fillStyle = "#f8fafc";
                         ctx.font = "15px 'Quicksand', sans-serif";
-                        ctx.fillText("클릭 또는 스페이스바로 다시 시작!", canvas.width / 2, canvas.height / 2 + 60);
+                        ctx.fillText("클릭 또는 스페이스바로 다시 시작!", canvas.width / 2, canvas.height / 2 + 80);
                     }
 
                     if (isPaused) {
