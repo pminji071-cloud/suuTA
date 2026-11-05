@@ -101,12 +101,10 @@ with col_panel:
             "landmarks": lm_list
         }
         
-        # 중복 방지 추가
         if not any(item['name'] == new_item['name'] for item in st.session_state.avatar_list):
             st.session_state.avatar_list.append(new_item)
             st.session_state.active_index = len(st.session_state.avatar_list) - 1
 
-    # 업로드된 아바타 목록 사이드바에 렌더링
     if len(st.session_state.avatar_list) > 0:
         st.caption(f"✨ 보관된 아바타 ({len(st.session_state.avatar_list)}개)")
         for idx, avt in enumerate(st.session_state.avatar_list):
@@ -143,16 +141,16 @@ with col_panel:
 with col_game:
     st.markdown("### 🦴 내 뼈다귀가 멈추지 않아!")
     
-    # 파이썬 세션 데이터를 자바스크립트로 안전하게 전달
     py_avatar_list_json = json.dumps(st.session_state.avatar_list)
     py_active_index = st.session_state.active_index
 
-    raw_html = f"""
+    # f-string 대신 일반 문자열 사용 및 .replace() 적용으로 문법 오류 원천 차단
+    raw_html = """
     <!DOCTYPE html>
     <html>
     <head>
     <style>
-        body {{ 
+        body { 
             background-color: transparent; 
             color: #f8fafc; 
             text-align: center; 
@@ -160,14 +158,14 @@ with col_game:
             margin: 0; 
             padding: 0;
             overflow: hidden;
-        }}
-        .game-container {{
+        }
+        .game-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-        }}
-        canvas {{ 
+        }
+        canvas { 
             background: #232336; 
             border: 4px solid #ffb7b2; 
             border-radius: 20px; 
@@ -176,7 +174,7 @@ with col_game:
             width: 100%;
             max-width: 950px;
             height: auto;
-        }}
+        }
     </style>
     </head>
     <body>
@@ -190,14 +188,14 @@ with col_game:
 
             let audioCtx = null;
 
-            function initAudio() {{
-                if (!audioCtx) {{
+            function initAudio() {
+                if (!audioCtx) {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }}
-            }}
+                }
+            }
 
-            function playPpyongSound() {{
-                try {{
+            function playPpyongSound() {
+                try {
                     initAudio();
                     if (!audioCtx) return;
                     
@@ -216,27 +214,25 @@ with col_game:
 
                     osc.start();
                     osc.stop(audioCtx.currentTime + 0.15);
-                }} catch(e) {{
+                } catch(e) {
                     console.log("Audio play error:", e);
-                }}
-            }}
+                }
+            }
 
-            // 🌟 파이썬 데이터와 localStorage 동기화 관리
-            let pyList = {py_avatar_list_json};
-            let pyIndex = {py_active_index};
+            let pyList = PY_AVATAR_LIST_PLACEHOLDER;
+            let pyIndex = PY_ACTIVE_INDEX_PLACEHOLDER;
 
             let storedListStr = localStorage.getItem("dino_avatar_list");
             let storedList = storedListStr ? JSON.parse(storedListStr) : [];
 
-            // 파이썬에 새로 들어온 데이터가 있으면 브라우저 영구 저장소에 병합
-            if (pyList && pyList.length > 0) {{
-                pyList.forEach(item => {{
-                    if (!storedList.some(s => s.name === item.name)) {{
+            if (pyList && pyList.length > 0) {
+                pyList.forEach(item => {
+                    if (!storedList.some(s => s.name === item.name)) {
                         storedList.push(item);
-                    }}
-                }});
+                    }
+                });
                 localStorage.setItem("dino_avatar_list", JSON.stringify(storedList));
-            }}
+            }
 
             let avatarList = storedList.length > 0 ? storedList : pyList;
             let activeIndex = pyIndex < avatarList.length ? pyIndex : (avatarList.length > 0 ? 0 : -1);
@@ -245,10 +241,10 @@ with col_game:
             let poseLandmarks = null;
             let activeImageBase64 = null;
 
-            if (hasImage) {{
+            if (hasImage) {
                 activeImageBase64 = avatarList[activeIndex].image;
                 poseLandmarks = avatarList[activeIndex].landmarks;
-            }}
+            }
 
             let highScore = parseInt(localStorage.getItem("dino_high_score") || "0");
 
@@ -286,86 +282,86 @@ with col_game:
             let celebrationText = "";
             let celebrationTimer = 0;
             const targetMilestones = [500, 1000, 1500, 1800, 2000, 5000, 7777, 10000];
-            let achievedMilestones = {{}};
+            let achievedMilestones = {};
 
             const caligoShapes = ["crystal", "spike", "core", "blade"];
             const caligoColors = ["#ff9aa2", "#ffb7b2", "#ffdac1", "#e2f0cb", "#b5ead7", "#c7ceea"];
 
-            function calculateSpeed() {{
+            function calculateSpeed() {
                 let baseSpeed = 5.0;
-                if (score >= 2000) {{
+                if (score >= 2000) {
                     let extraTier = Math.floor((score - 2000) / 500) + 1;
                     return baseSpeed * Math.pow(2, extraTier);
-                }} else if (score >= 1800) {{
+                } else if (score >= 1800) {
                     return baseSpeed * 2.2;
-                }} else if (score >= 1500) {{
+                } else if (score >= 1500) {
                     return baseSpeed * 1.9;
-                }} else if (score >= 1000) {{
+                } else if (score >= 1000) {
                     return baseSpeed * 1.6;
-                }} else if (score >= 500) {{
+                } else if (score >= 500) {
                     return baseSpeed * 1.3;
-                }} else {{
+                } else {
                     return baseSpeed;
-                }}
-            }}
+                }
+            }
 
-            function resetObstacle() {{
+            function resetObstacle() {
                 obstacleWidth = Math.floor(30 + Math.random() * 30);
                 obstacleHeight = Math.floor(35 + Math.random() * 35);
                 
                 obstacleSpeed = calculateSpeed();
 
                 const isAir = Math.random() < 0.35;
-                if (isAir) {{
+                if (isAir) {
                     obstacleY = floorY - 110 + Math.random() * 30;
-                }} else {{
+                } else {
                     obstacleY = floorY - obstacleHeight;
-                }}
+                }
 
                 obstacleX = 950 + Math.random() * 350;
                 obstacleShape = caligoShapes[Math.floor(Math.random() * caligoShapes.length)];
                 obstacleColor = caligoColors[Math.floor(Math.random() * caligoColors.length)];
 
-                if (!starActive && Math.random() < 0.25) {{
+                if (!starActive && Math.random() < 0.25) {
                     starActive = true;
                     starX = 950 + Math.random() * 250;
                     starY = Math.random() < 0.5 ? floorY - 120 : floorY - 50; 
-                }}
+                }
 
-                if (score >= 300 && Math.random() < 0.35) {{
+                if (score >= 300 && Math.random() < 0.35) {
                     let offsets = [-45, -30, 20, 35];
                     targetFloorY = baseFloorY + offsets[Math.floor(Math.random() * offsets.length)];
-                }} else {{
+                } else {
                     targetFloorY = baseFloorY;
-                }}
-            }}
+                }
+            }
 
-            function startCountdown() {{
+            function startCountdown() {
                 isPaused = false;
                 isCountdown = true;
                 countdownValue = 3;
 
                 if (countdownTimer) clearInterval(countdownTimer);
 
-                countdownTimer = setInterval(function() {{
+                countdownTimer = setInterval(function() {
                     countdownValue--;
-                    if (countdownValue <= 0) {{
+                    if (countdownValue <= 0) {
                         clearInterval(countdownTimer);
                         isCountdown = false;
-                    }}
-                }}, 1000);
-            }}
+                    }
+                }, 1000);
+            }
 
-            function triggerJump() {{
+            function triggerJump() {
                 if (!hasImage || isPaused || isCountdown || isGameOver || isCrouching) return;
                 
-                if (jumpCount < maxJumps) {{
+                if (jumpCount < maxJumps) {
                     jumpCount++;
                     jumpVelocity = -18;
-                }}
-            }}
+                }
+            }
 
-            canvas.addEventListener("click", function(e) {{
+            canvas.addEventListener("click", function(e) {
                 initAudio();
                 if (!hasImage) return;
 
@@ -373,30 +369,30 @@ with col_game:
                 const mouseX = e.clientX - rect.left;
                 const mouseY = e.clientY - rect.top;
 
-                if (isGameOver) {{
+                if (isGameOver) {
                     isGameOver = false;
                     score = 0;
                     floorY = baseFloorY;
                     targetFloorY = baseFloorY;
                     starActive = false;
-                    achievedMilestones = {{}};
+                    achievedMilestones = {};
                     resetObstacle();
                     jumpHeight = 0;
                     jumpCount = 0;
                     isCrouching = false;
                     return;
-                }}
+                }
 
-                if (isPaused) {{
-                    if (mouseX >= 375 && mouseX <= 575 && mouseY >= 230 && mouseY <= 270) {{
+                if (isPaused) {
+                    if (mouseX >= 375 && mouseX <= 575 && mouseY >= 230 && mouseY <= 270) {
                         startCountdown();
-                    }}
-                    else if (mouseX >= 375 && mouseX <= 575 && mouseY >= 290 && mouseY <= 330) {{
+                    }
+                    else if (mouseX >= 375 && mouseX <= 575 && mouseY >= 290 && mouseY <= 330) {
                         score = 0;
                         floorY = baseFloorY;
                         targetFloorY = baseFloorY;
                         starActive = false;
-                        achievedMilestones = {{}};
+                        achievedMilestones = {};
                         resetObstacle();
                         jumpHeight = 0;
                         jumpCount = 0;
@@ -404,57 +400,57 @@ with col_game:
                         isPaused = false;
                         isCountdown = false;
                         if (countdownTimer) clearInterval(countdownTimer);
-                    }}
+                    }
                     return;
-                }}
+                }
 
                 triggerJump();
-            }});
+            });
 
-            window.addEventListener("keydown", function(e) {{
+            window.addEventListener("keydown", function(e) {
                 initAudio();
                 if (!hasImage) return;
 
-                if (e.code === "Space") {{
+                if (e.code === "Space") {
                     e.preventDefault();
-                    if (isGameOver) {{
+                    if (isGameOver) {
                         isGameOver = false;
                         score = 0;
                         floorY = baseFloorY;
                         targetFloorY = baseFloorY;
                         starActive = false;
-                        achievedMilestones = {{}};
+                        achievedMilestones = {};
                         resetObstacle();
                         jumpHeight = 0;
                         jumpCount = 0;
                         isCrouching = false;
                         return;
-                    }}
+                    }
                     triggerJump();
-                }}
+                }
 
-                if (e.code === "ControlLeft" || e.code === "ControlRight") {{
+                if (e.code === "ControlLeft" || e.code === "ControlRight") {
                     e.preventDefault();
-                    if (jumpCount === 0 && !isPaused && !isCountdown && !isGameOver) {{
+                    if (jumpCount === 0 && !isPaused && !isCountdown && !isGameOver) {
                         isCrouching = true;
-                    }}
-                }}
+                    }
+                }
 
-                if (e.key === "Escape" && !isGameOver) {{
-                    if (isPaused) {{
+                if (e.key === "Escape" && !isGameOver) {
+                    if (isPaused) {
                         startCountdown();
-                    }} else {{
+                    } else {
                         isPaused = true;
                         if (countdownTimer) clearInterval(countdownTimer);
                         isCountdown = false;
-                    }}
-                }}
-            }});
+                    }
+                }
+            });
 
-            window.addEventListener("keyup", function(e) {{
-                if (e.code === "ControlLeft" || e.code === "ControlRight") {{
+            window.addEventListener("keyup", function(e) {
+                if (e.code === "ControlLeft" || e.code === "ControlRight") {
                     isCrouching = false;
-                }}
+                }
             });
 
             const POSE_CONNECTIONS = [
@@ -462,74 +458,74 @@ with col_game:
                 [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28]
             ];
 
-            function drawPoseCharacter(x, currentFloorY, landmarks, crouching) {{
-                ctx.strokeStyle = "{skin_color}";
-                ctx.fillStyle = "{skin_color}";
+            function drawPoseCharacter(x, currentFloorY, landmarks, crouching) {
+                ctx.strokeStyle = "SKIN_COLOR_PLACEHOLDER";
+                ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
                 ctx.lineWidth = 4;
                 ctx.lineCap = "round";
-                ctx.shadowColor = "{skin_color}";
+                ctx.shadowColor = "SKIN_COLOR_PLACEHOLDER";
                 ctx.shadowBlur = 8;
 
                 let scale = crouching ? 65 : 100;
 
-                if (landmarks && landmarks.length > 0) {{
+                if (landmarks && landmarks.length > 0) {
                     let maxY = -999;
-                    landmarks.forEach(function(lm, idx) {{
-                        if ([27, 28, 29, 30, 31, 32].indexOf(idx) !== -1 && lm.visibility > 0.2) {{
+                    landmarks.forEach(function(lm, idx) {
+                        if ([27, 28, 29, 30, 31, 32].indexOf(idx) !== -1 && lm.visibility > 0.2) {
                             if (lm.y > maxY) maxY = lm.y;
-                        }}
+                        }
                     });
 
-                    if (maxY === -999) {{
-                        if (landmarks[23] && landmarks[24]) {{
+                    if (maxY === -999) {
+                        if (landmarks[23] && landmarks[24]) {
                             maxY = Math.max(landmarks[23].y, landmarks[24].y) + 0.3;
-                        }} else {{
+                        } else {
                             maxY = 0.85;
-                        }}
-                    }}
+                        }
+                    }
 
                     let feetYScaled = (maxY - 0.5) * scale;
                     let calculatedOffsetY = currentFloorY - feetYScaled;
 
-                    POSE_CONNECTIONS.forEach(function(pair) {{
+                    POSE_CONNECTIONS.forEach(function(pair) {
                         const i = pair[0];
                         const j = pair[1];
                         const pt1 = landmarks[i];
                         const pt2 = landmarks[j];
-                        if (pt1 && pt2 && pt1.visibility > 0.3 && pt2.visibility > 0.3) {{
+                        if (pt1 && pt2 && pt1.visibility > 0.3 && pt2.visibility > 0.3) {
                             ctx.beginPath();
                             ctx.moveTo(x + (pt1.x - 0.5) * scale, calculatedOffsetY + (pt1.y - 0.5) * scale);
                             ctx.lineTo(x + (pt2.x - 0.5) * scale, calculatedOffsetY + (pt2.y - 0.5) * scale);
                             ctx.stroke();
-                        }}
+                        }
                     });
 
                     const nose = landmarks[0];
-                    if (nose) {{
+                    if (nose) {
                         ctx.beginPath();
                         ctx.arc(x + (nose.x - 0.5) * scale, calculatedOffsetY + (nose.y - 0.5) * scale - 10, 14, 0, Math.PI * 2);
                         ctx.fill();
-                    }}
+                    }
 
-                    landmarks.forEach(function(lm, idx) {{
-                        if ([11,12,13,14,15,16,23,24,25,26,27,28].indexOf(idx) !== -1 && lm.visibility > 0.3) {{
+                    landmarks.forEach(function(lm, idx) {
+                        if ([11,12,13,14,15,16,23,24,25,26,27,28].indexOf(idx) !== -1 && lm.visibility > 0.3) {
                             ctx.beginPath();
                             ctx.arc(x + (lm.x - 0.5) * scale, calculatedOffsetY + (lm.y - 0.5) * scale, 4, 0, Math.PI * 2);
                             ctx.fillStyle = "#ffffff";
                             ctx.fill();
-                            ctx.fillStyle = "{skin_color}";
-                        }}
+                            ctx.fillStyle = "SKIN_COLOR_PLACEHOLDER";
+                        }
                     });
-                }} else {{
+                } else {
                     let baseOffsetY = crouching ? currentFloorY - 20 : currentFloorY - 50;
                     ctx.beginPath(); ctx.arc(x, baseOffsetY - 30, 14, 0, Math.PI * 2); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(x, baseOffsetY - 16); ctx.lineTo(x, baseOffsetY + 15); ctx.stroke();
                     ctx.beginPath(); ctx.moveTo(x - 15, baseOffsetY - 8); ctx.lineTo(x + 15, baseOffsetY - 8); ctx.stroke();
-                }}
+                }
                 ctx.shadowBlur = 0;
-            }}
+            }
 
-            function drawStar(cx, cy, spikes, outerRadius, innerRadius) {{
+            function drawStar(cx, cy, spikes, outerRadius, innerRadius) {
                 let rot = (Math.PI / 2) * 3;
                 let x = cx;
                 let y = cy;
@@ -540,7 +536,7 @@ with col_game:
                 ctx.shadowBlur = 15;
                 ctx.beginPath();
                 ctx.moveTo(cx, cy - outerRadius);
-                for (let i = 0; i < spikes; i++) {{
+                for (let i = 0; i < spikes; i++) {
                     x = cx + Math.cos(rot) * outerRadius;
                     y = cy + Math.sin(rot) * outerRadius;
                     ctx.lineTo(x, y);
@@ -550,19 +546,19 @@ with col_game:
                     y = cy + Math.sin(rot) * innerRadius;
                     ctx.lineTo(x, y);
                     rot += step;
-                }}
+                }
                 ctx.lineTo(cx, cy - outerRadius);
                 ctx.closePath();
                 ctx.fill();
                 ctx.shadowBlur = 0;
-            }}
+            }
 
-            function drawObstacle() {{
+            function drawObstacle() {
                 ctx.fillStyle = obstacleColor;
                 ctx.shadowColor = "#ffdac1";
                 ctx.shadowBlur = 10;
 
-                if (obstacleShape === "crystal") {{
+                if (obstacleShape === "crystal") {
                     ctx.beginPath();
                     ctx.moveTo(obstacleX + obstacleWidth / 2, obstacleY);
                     ctx.lineTo(obstacleX + obstacleWidth, obstacleY + obstacleHeight * 0.4);
@@ -570,14 +566,14 @@ with col_game:
                     ctx.lineTo(obstacleX, obstacleY + obstacleHeight * 0.4);
                     ctx.closePath();
                     ctx.fill();
-                }} else if (obstacleShape === "spike") {{
+                } else if (obstacleShape === "spike") {
                     ctx.beginPath();
                     ctx.moveTo(obstacleX + obstacleWidth / 2, obstacleY);
                     ctx.lineTo(obstacleX + obstacleWidth, obstacleY + obstacleHeight);
                     ctx.lineTo(obstacleX, obstacleY + obstacleHeight);
                     ctx.closePath();
                     ctx.fill();
-                }} else if (obstacleShape === "core") {{
+                } else if (obstacleShape === "core") {
                     let radius = obstacleWidth / 2;
                     ctx.beginPath();
                     ctx.arc(obstacleX + radius, obstacleY + radius, radius, 0, Math.PI * 2);
@@ -586,7 +582,7 @@ with col_game:
                     ctx.beginPath();
                     ctx.arc(obstacleX + radius, obstacleY + radius, radius * 0.35, 0, Math.PI * 2);
                     ctx.fill();
-                }} else if (obstacleShape === "blade") {{
+                } else if (obstacleShape === "blade") {
                     let cx = obstacleX + obstacleWidth / 2;
                     let cy = obstacleY + obstacleHeight / 2;
                     let size = obstacleWidth / 2;
@@ -601,15 +597,15 @@ with col_game:
                     ctx.lineTo(cx - size * 0.5, cy - size * 0.5);
                     ctx.closePath();
                     ctx.fill();
-                }}
+                }
 
                 ctx.strokeStyle = "#ffffff";
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 ctx.shadowBlur = 0;
-            }}
+            }
 
-            function drawGorgeousBackground(themeLevel) {{
+            function drawGorgeousBackground(themeLevel) {
                 let bgGrad = ctx.createLinearGradient(0, 0, 0, 520);
                 bgGrad.addColorStop(0, "#1e1e2f");
                 bgGrad.addColorStop(1, "#3b3b58");
@@ -618,10 +614,10 @@ with col_game:
 
                 ctx.fillStyle = "rgba(255, 222, 215, 0.4)";
                 let stars = [ [70,50], [180,100], [330,40], [450,130], [560,70], [680,150], [820,55], [100,210], [400,260], [800,180] ];
-                stars.forEach(s => {{ ctx.fillRect(s[0], s[1], 3, 3); }});
-            }}
+                stars.forEach(s => { ctx.fillRect(s[0], s[1], 3, 3); });
+            }
 
-            function update() {{
+            function update() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 let themeLevel = Math.floor(score / 1000) % 6;
@@ -633,7 +629,7 @@ with col_game:
                 ctx.lineWidth = 4;
                 ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(950, floorY); ctx.stroke();
 
-                if (!hasImage) {{
+                if (!hasImage) {
                     ctx.fillStyle = "#ffb7b2";
                     ctx.font = "bold 20px 'Quicksand', sans-serif";
                     ctx.textAlign = "center";
@@ -641,38 +637,38 @@ with col_game:
                     ctx.fillStyle = "#b5ead7";
                     ctx.font = "14px 'Quicksand', sans-serif";
                     ctx.fillText("Upload a photo to start playing!", canvas.width / 2, canvas.height / 2 + 20);
-                }} else {{
-                    if (!isPaused && !isCountdown && !isGameOver) {{
-                        if (jumpCount > 0) {{
+                } else {
+                    if (!isPaused && !isCountdown && !isGameOver) {
+                        if (jumpCount > 0) {
                             jumpHeight += jumpVelocity;
                             jumpVelocity += 1.05;
                             
-                            if (jumpHeight >= 0) {{
+                            if (jumpHeight >= 0) {
                                 jumpHeight = 0;
                                 jumpCount = 0;
                                 jumpVelocity = 0;
-                            }}
-                        }}
+                            }
+                        }
 
                         obstacleX -= obstacleSpeed;
-                        if (obstacleX < -60) {{
+                        if (obstacleX < -60) {
                             resetObstacle();
                             score += 100;
-                        }}
+                        }
 
-                        targetMilestones.forEach(m => {{
-                            if (score >= m && !achievedMilestones[m]) {{
+                        targetMilestones.forEach(m => {
+                            if (score >= m && !achievedMilestones[m]) {
                                 achievedMilestones[m] = true;
                                 celebrationText = "🎉 " + m + "점 돌파! 대단해요! 🎉";
                                 celebrationTimer = 90;
-                            }}
-                        }});
+                            }
+                        });
 
-                        if (starActive) {{
+                        if (starActive) {
                             starX -= obstacleSpeed;
-                            if (starX < -50) {{
+                            if (starX < -50) {
                                 starActive = false;
-                            }}
+                            }
 
                             let currentFloor = floorY + jumpHeight;
                             if (
@@ -680,13 +676,13 @@ with col_game:
                                 charX - 20 < starX + 15 &&
                                 currentFloor > starY - 30 &&
                                 currentFloor - 80 < starY + 15
-                            ) {{
+                            ) {
                                 score += 100; 
                                 starActive = false;
                                 starEffectTimer = 30;
                                 playPpyongSound();
-                            }}
-                        }}
+                            }
+                        }
 
                         let currentFloor = floorY + jumpHeight;
                         let obsLeft = obstacleX;
@@ -704,22 +700,22 @@ with col_game:
                             charLeft < obsRight &&
                             charBottom > obsTop &&
                             charTop < obsBottom
-                        ) {{
+                        ) {
                             isGameOver = true;
-                            if (score > highScore) {{
+                            if (score > highScore) {
                                 highScore = score;
                                 localStorage.setItem("dino_high_score", highScore);
-                            }}
-                        }}
-                    }}
+                            }
+                        }
+                    }
 
                     drawObstacle();
 
-                    if (starActive) {{
+                    if (starActive) {
                         drawStar(starX, starY, 5, 16, 8);
-                    }}
+                    }
 
-                    if (starEffectTimer > 0) {{
+                    if (starEffectTimer > 0) {
                         starEffectTimer--;
                         ctx.fillStyle = "#ffdf00";
                         ctx.font = "bold 18px 'Quicksand', sans-serif";
@@ -728,9 +724,9 @@ with col_game:
                         ctx.shadowBlur = 10;
                         ctx.fillText("🌟 BONUS x2 SCORE! 🌟", charX + 20, floorY + jumpHeight - 110);
                         ctx.shadowBlur = 0;
-                    }}
+                    }
 
-                    if (celebrationTimer > 0) {{
+                    if (celebrationTimer > 0) {
                         celebrationTimer--;
                         ctx.fillStyle = "rgba(255, 218, 193, 0.25)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -742,7 +738,7 @@ with col_game:
                         ctx.shadowBlur = 20;
                         ctx.fillText(celebrationText, canvas.width / 2, 130);
                         ctx.shadowBlur = 0;
-                    }}
+                    }
 
                     let currentFloor = floorY + jumpHeight;
                     drawPoseCharacter(charX, currentFloor, poseLandmarks, isCrouching);
@@ -753,7 +749,6 @@ with col_game:
                     ctx.textAlign = "left";
                     ctx.fillText("⭐ SCORE: " + score + " [" + themeNames[themeLevel] + "]", 20, 35);
 
-                    // ⭐ 우측 하단에 점수 및 최고 기록 표시
                     ctx.fillStyle = "rgba(35, 35, 54, 0.85)";
                     ctx.fillRect(750, 460, 180, 45);
                     ctx.strokeStyle = "#ffdac1";
@@ -767,7 +762,7 @@ with col_game:
                     ctx.fillStyle = "#b5ead7";
                     ctx.fillText("⭐ NOW: " + score, 765, 498);
 
-                    if (isGameOver) {{
+                    if (isGameOver) {
                         ctx.fillStyle = "rgba(30, 30, 47, 0.92)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -787,9 +782,9 @@ with col_game:
                         ctx.fillStyle = "#f8fafc";
                         ctx.font = "15px 'Quicksand', sans-serif";
                         ctx.fillText("클릭 또는 스페이스바로 다시 시작!", canvas.width / 2, canvas.height / 2 + 80);
-                    }}
+                    }
 
-                    if (isPaused) {{
+                    if (isPaused) {
                         ctx.fillStyle = "rgba(30, 30, 47, 0.9)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -808,9 +803,9 @@ with col_game:
                         ctx.fillRect(375, 290, 200, 40);
                         ctx.fillStyle = "#1e1e2f";
                         ctx.fillText("🔄 처음으로", canvas.width / 2, 315);
-                    }}
+                    }
 
-                    if (isCountdown) {{
+                    if (isCountdown) {
                         ctx.fillStyle = "rgba(30, 30, 47, 0.9)";
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -825,11 +820,11 @@ with col_game:
                         ctx.fillStyle = "#b5ead7";
                         ctx.font = "18px 'Quicksand', sans-serif";
                         ctx.fillText("준비하세요!", canvas.width / 2, canvas.height / 2 - 60);
-                    }}
-                }}
+                    }
+                }
 
                 requestAnimationFrame(update);
-            }}
+            }
 
             update();
         </script>
@@ -837,4 +832,8 @@ with col_game:
     </html>
     """
 
-    components.html(raw_html, height=580)
+    game_html = raw_html.replace("PY_AVATAR_LIST_PLACEHOLDER", py_avatar_list_json)
+    game_html = game_html.replace("PY_ACTIVE_INDEX_PLACEHOLDER", str(py_active_index))
+    game_html = game_html.replace("SKIN_COLOR_PLACEHOLDER", skin_color)
+
+    components.html(game_html, height=580)
