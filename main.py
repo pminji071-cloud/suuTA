@@ -109,7 +109,6 @@ with col_panel:
         except Exception as e:
             st.error(f"이미지 처리 중 오류가 발생했습니다: {e}")
 
-    # 아바타 보관함 리스트 UI (클릭하면 바로 선택되어 로드됨)
     if len(st.session_state.avatar_list) > 0:
         st.caption(f"✨ 보관된 아바타 ({len(st.session_state.avatar_list)}개)")
         for idx, avt in enumerate(st.session_state.avatar_list):
@@ -117,7 +116,6 @@ with col_panel:
             with cols[0]:
                 st.image(avt['image'], width=50)
             with cols[1]:
-                # 선택된 아바타 강조 표시
                 btn_label = f"👉 {avt['name'][:10]}" if idx == st.session_state.active_index else f"{avt['name'][:10]}"
                 if st.button(btn_label, key=f"btn_avt_{idx}"):
                     st.session_state.active_index = idx
@@ -180,17 +178,26 @@ with col_game:
             width: 100%;
             max-width: 950px;
             height: auto;
+            outline: none;
         }
     </style>
     </head>
     <body>
         <div class="game-container">
-            <canvas id="gameCanvas" width="950" height="520"></canvas>
+            <canvas id="gameCanvas" width="950" height="520" tabindex="1"></canvas>
         </div>
 
         <script>
             const canvas = document.getElementById("gameCanvas");
             const ctx = canvas.getContext("2d");
+
+            // ⭐ 실행되자마자 캔버스에 포커스를 주어 키보드 입력이 바로 먹히도록 설정
+            window.addEventListener('load', function() {
+                canvas.focus();
+            });
+            document.addEventListener('click', function() {
+                canvas.focus();
+            });
 
             let audioCtx = null;
 
@@ -242,8 +249,6 @@ with col_game:
                         }
                     });
                     localStorage.setItem("dino_avatar_list", JSON.stringify(storedList));
-                } else if (storedList.length > 0) {
-                    avatarList = storedList;
                 }
 
                 avatarList = storedList.length > 0 ? storedList : pyList;
@@ -378,6 +383,7 @@ with col_game:
 
             canvas.addEventListener("click", function(e) {
                 initAudio();
+                canvas.focus();
                 if (!hasImage) return;
 
                 const rect = canvas.getBoundingClientRect();
