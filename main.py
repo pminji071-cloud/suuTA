@@ -65,7 +65,7 @@ st.markdown("""
 
 mp_pose = mp.solutions.pose
 
-# 파이썬 세션 상태 유지 초기화
+# 파이썬 세션 상태 초기화
 if "avatar_list" not in st.session_state:
     st.session_state.avatar_list = []
 if "active_index" not in st.session_state:
@@ -144,7 +144,6 @@ with col_game:
     py_avatar_list_json = json.dumps(st.session_state.avatar_list)
     py_active_index = st.session_state.active_index
 
-    # f-string 대신 일반 문자열 사용 및 .replace() 적용으로 문법 오류 원천 차단
     raw_html = """
     <!DOCTYPE html>
     <html>
@@ -833,7 +832,7 @@ with col_game:
     """
 
     game_html = raw_html.replace("PY_AVATAR_LIST_PLACEHOLDER", py_avatar_list_json)
-    game_html = game_html.replace("PY_ACTIVE_INDEX_PLACEHOLDER", str(py_active_index))
+    game_html = raw_html.replace("PY_ACTIVE_INDEX_PLACEHOLDER", str(py_active_index))
     game_html = game_html.replace("SKIN_COLOR_PLACEHOLDER", skin_color)
 
     components.html(game_html, height=580)
