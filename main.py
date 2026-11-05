@@ -71,6 +71,15 @@ if "avatar_list" not in st.session_state:
 if "active_index" not in st.session_state:
     st.session_state.active_index = 0
 
+# URL 쿼리 파라미터를 통해 브라우저 로컬 스토리지 데이터 동기화 받기
+query_params = st.query_params
+if "synced_avatars" in query_params and not st.session_state.avatar_list:
+    try:
+        raw_json = query_params["synced_avatars"]
+        st.session_state.avatar_list = json.loads(raw_json)
+    except Exception as e:
+        pass
+
 # 2. 레이아웃 비율 조정
 col_game, col_panel = st.columns([2.8, 1])
 
@@ -191,7 +200,7 @@ with col_game:
             const canvas = document.getElementById("gameCanvas");
             const ctx = canvas.getContext("2d");
 
-            // ⭐ 실행되자마자 캔버스에 포커스를 주어 키보드 입력이 바로 먹히도록 설정
+            // 시작하자마자 자동 키보드 포커스
             window.addEventListener('load', function() {
                 canvas.focus();
             });
@@ -253,6 +262,15 @@ with col_game:
 
                 avatarList = storedList.length > 0 ? storedList : pyList;
                 activeIndex = pyIndex < avatarList.length ? pyIndex : (avatarList.length > 0 ? 0 : -1);
+
+                // 부모 창(Streamlit)으로 브라우저에 남아있던 아바타 데이터 자동 전달
+                if (storedList.length > 0 && pyList.length === 0) {
+                    const params = new URLSearchParams(window.parent.location.search);
+                    if (!params.has("synced_avatars")) {
+                        params.set("synced_avatars", JSON.stringify(storedList));
+                        window.parent.location.search = params.toString();
+                    }
+                }
             } catch (err) {
                 console.log("Storage load error:", err);
             }
@@ -476,7 +494,7 @@ with col_game:
 
             const POSE_CONNECTIONS = [
                 [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
-                [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28]
+                [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [26, 28]
             ];
 
             function drawPoseCharacter(x, currentFloorY, landmarks, crouching) {
