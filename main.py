@@ -80,30 +80,35 @@ with col_panel:
     uploaded_file = st.file_uploader("🖼️ 새 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
     
     if uploaded_file is not None:
-        image = Image.open(uploaded_file).convert("RGB")
-        buffered = io.BytesIO()
-        image.save(buffered, format="JPEG")
-        img_str = base64.b64encode(buffered.getvalue()).decode()
-        img_base64 = f"data:image/jpeg;base64,{img_str}"
+        try:
+            image = Image.open(uploaded_file).convert("RGB")
+            # 이미지 용량 최적화를 위해 크기 축소 (캔버스 부하 방지)
+            image.thumbnail((300, 300))
+            buffered = io.BytesIO()
+            image.save(buffered, format="JPEG", quality=85)
+            img_str = base64.b64encode(buffered.getvalue()).decode()
+            img_base64 = f"data:image/jpeg;base64,{img_str}"
 
-        # MediaPipe 관절 스캔
-        img_array = np.array(image)
-        lm_list = []
-        with mp_pose.Pose(static_image_mode=True, model_complexity=1) as pose:
-            results = pose.process(img_array)
-            if results.pose_landmarks:
-                for lm in results.pose_landmarks.landmark:
-                    lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
-        
-        new_item = {
-            "name": uploaded_file.name,
-            "image": img_base64,
-            "landmarks": lm_list
-        }
-        
-        if not any(item['name'] == new_item['name'] for item in st.session_state.avatar_list):
-            st.session_state.avatar_list.append(new_item)
-            st.session_state.active_index = len(st.session_state.avatar_list) - 1
+            # MediaPipe 관절 스캔
+            img_array = np.array(image)
+            lm_list = []
+            with mp_pose.Pose(static_image_mode=True, model_complexity=1) as pose:
+                results = pose.process(img_array)
+                if results.pose_landmarks:
+                    for lm in results.pose_landmarks.landmark:
+                        lm_list.append({"x": lm.x, "y": lm.y, "visibility": lm.visibility})
+            
+            new_item = {
+                "name": uploaded_file.name,
+                "image": img_base64,
+                "landmarks": lm_list
+            }
+            
+            if not any(item['name'] == new_item['name'] for item in st.session_state.avatar_list):
+                st.session_state.avatar_list.append(new_item)
+                st.session_state.active_index = len(st.session_state.avatar_list) - 1
+        except Exception as e:
+            st.error(f"이미지 처리 중 오류가 발생했습니다: {e}")
 
     if len(st.session_state.avatar_list) > 0:
         st.caption(f"✨ 보관된 아바타 ({len(st.session_state.avatar_list)}개)")
@@ -218,23 +223,30 @@ with col_game:
                 }
             }
 
-            let pyList = PY_AVATAR_LIST_PLACEHOLDER;
-            let pyIndex = PY_ACTIVE_INDEX_PLACEHOLDER;
+            let avatarList = [];
+            let activeIndex = 0;
 
-            let storedListStr = localStorage.getItem("dino_avatar_list");
-            let storedList = storedListStr ? JSON.parse(storedListStr) : [];
+            try {
+                let pyList = PY_AVATAR_LIST_PLACEHOLDER;
+                let pyIndex = PY_ACTIVE_INDEX_PLACEHOLDER;
 
-            if (pyList && pyList.length > 0) {
-                pyList.forEach(item => {
-                    if (!storedList.some(s => s.name === item.name)) {
-                        storedList.push(item);
-                    }
-                });
-                localStorage.setItem("dino_avatar_list", JSON.stringify(storedList));
+                let storedListStr = localStorage.getItem("dino_avatar_list");
+                let storedList = storedListStr ? JSON.parse(storedListStr) : [];
+
+                if (pyList && pyList.length > 0) {
+                    pyList.forEach(item => {
+                        if (!storedList.some(s => s.name === item.name)) {
+                            storedList.push(item);
+                        }
+                    });
+                    localStorage.setItem("dino_avatar_list", JSON.stringify(storedList));
+                }
+
+                avatarList = storedList.length > 0 ? storedList : pyList;
+                activeIndex = pyIndex < avatarList.length ? pyIndex : (avatarList.length > 0 ? 0 : -1);
+            } catch (err) {
+                console.log("Storage load error:", err);
             }
-
-            let avatarList = storedList.length > 0 ? storedList : pyList;
-            let activeIndex = pyIndex < avatarList.length ? pyIndex : (avatarList.length > 0 ? 0 : -1);
 
             let hasImage = avatarList.length > 0 && activeIndex >= 0;
             let poseLandmarks = null;
@@ -832,7 +844,7 @@ with col_game:
     """
 
     game_html = raw_html.replace("PY_AVATAR_LIST_PLACEHOLDER", py_avatar_list_json)
-    game_html = raw_html.replace("PY_ACTIVE_INDEX_PLACEHOLDER", str(py_active_index))
+    game_html = game_html.replace("PY_ACTIVE_INDEX_PLACEHOLDER", str(py_active_index))
     game_html = game_html.replace("SKIN_COLOR_PLACEHOLDER", skin_color)
 
     components.html(game_html, height=580)
