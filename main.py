@@ -76,37 +76,6 @@ col_game, col_panel = st.columns([2.8, 1])
 
 with col_panel:
     st.markdown("### 🐾 아바타 보관함")
-
-    # 💾 데이터 백업 및 복구 기능 영역
-    with st.expander("📦 데이터 파일 저장/불러오기"):
-        # 데이터 내보내기 (다운로드)
-        backup_data = {
-            "avatar_list": st.session_state.avatar_list,
-            "active_index": st.session_state.active_index
-        }
-        backup_json = json.dumps(backup_data)
-        st.download_button(
-            label="💾 데이터 파일로 저장",
-            data=backup_json,
-            file_name="dino_game_backup.json",
-            mime="application/json",
-            help="현재 아바타와 보관함 데이터를 파일로 저장합니다."
-        )
-
-        # 데이터 가져오기 (업로드)
-        uploaded_backup = st.file_uploader("📂 백업 파일(.json) 불러오기", type=["json"])
-        if uploaded_backup is not None:
-            try:
-                loaded_data = json.load(uploaded_backup)
-                if "avatar_list" in loaded_data:
-                    st.session_state.avatar_list = loaded_data["avatar_list"]
-                    st.session_state.active_index = loaded_data.get("active_index", 0)
-                    st.success("데이터를 성공적으로 불러왔습니다!")
-                    st.rerun()
-            except Exception as e:
-                st.error(f"불러오기 실패: {e}")
-
-    st.write("---")
     
     uploaded_file = st.file_uploader("🖼️ 새 사진 업로드 (.jpg / .png)", type=["jpg", "jpeg", "png"])
     
@@ -140,6 +109,7 @@ with col_panel:
         except Exception as e:
             st.error(f"이미지 처리 중 오류가 발생했습니다: {e}")
 
+    # 아바타 보관함 리스트 UI (클릭하면 바로 선택되어 로드됨)
     if len(st.session_state.avatar_list) > 0:
         st.caption(f"✨ 보관된 아바타 ({len(st.session_state.avatar_list)}개)")
         for idx, avt in enumerate(st.session_state.avatar_list):
@@ -147,7 +117,9 @@ with col_panel:
             with cols[0]:
                 st.image(avt['image'], width=50)
             with cols[1]:
-                if st.button(f"{avt['name'][:10]}", key=f"btn_avt_{idx}"):
+                # 선택된 아바타 강조 표시
+                btn_label = f"👉 {avt['name'][:10]}" if idx == st.session_state.active_index else f"{avt['name'][:10]}"
+                if st.button(btn_label, key=f"btn_avt_{idx}"):
                     st.session_state.active_index = idx
                     st.rerun()
         
@@ -270,6 +242,8 @@ with col_game:
                         }
                     });
                     localStorage.setItem("dino_avatar_list", JSON.stringify(storedList));
+                } else if (storedList.length > 0) {
+                    avatarList = storedList;
                 }
 
                 avatarList = storedList.length > 0 ? storedList : pyList;
